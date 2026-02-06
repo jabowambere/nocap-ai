@@ -40,17 +40,6 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
               >
                 Dashboard
               </button>
-              <button
-                onClick={() => navigate('/history')}
-                className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 hover:scale-105 ${
-                  currentPath === '/history'
-                    ? 'bg-gradient-to-r from-slate-700 to-black text-white shadow-lg animate-pulse'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:shadow-md'
-                }`}
-              >
-                <HistoryIcon size={16} className="animate-bounce" />
-                History
-              </button>
             </nav>
           )}
           

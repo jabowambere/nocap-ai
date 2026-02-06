@@ -2,7 +2,7 @@ import React from 'react';
 import { SignIn, SignUp, UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import { X } from 'lucide-react';
 
-const ClerkAuth = ({ isOpen, onClose, mode = 'signin' }) => {
+const ClerkAuth = ({ isOpen, onClose }) => {
   const { user } = useUser();
   const { signOut } = useAuth();
 
@@ -16,11 +16,13 @@ const ClerkAuth = ({ isOpen, onClose, mode = 'signin' }) => {
       headerSubtitle: 'text-slate-600 dark:text-slate-400',
       socialButtonsBlockButton: 'border-slate-300 hover:bg-slate-50',
       formFieldLabel: 'text-slate-700 dark:text-slate-300',
-      footerActionLink: 'text-slate-700 hover:text-slate-900'
+      footerActionLink: 'hidden',
+      footer: 'hidden'
     },
     layout: {
       socialButtonsPlacement: 'bottom',
-      socialButtonsVariant: 'blockButton'
+      socialButtonsVariant: 'blockButton',
+      showOptionalFields: false
     },
     variables: {
       colorPrimary: '#1e293b',
@@ -42,17 +44,11 @@ const ClerkAuth = ({ isOpen, onClose, mode = 'signin' }) => {
         </button>
         
         <div className="p-6">
-          {mode === 'signin' ? (
-            <SignIn 
-              appearance={appearance}
-              redirectUrl="/"
-            />
-          ) : (
-            <SignUp 
-              appearance={appearance}
-              redirectUrl="/"
-            />
-          )}
+          <SignIn 
+            appearance={appearance}
+            redirectUrl="/"
+            routing="hash"
+          />
         </div>
       </div>
     </div>
