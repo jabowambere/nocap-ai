@@ -1,7 +1,7 @@
 def heuristic_score(signals: dict) -> float:
     score = 0.5  # neutral baseline
 
-    # 🔴 Negative signals (sensationalism)
+    # Negative signals (sensationalism)
     if signals["all_caps_ratio"] > 0.3:
         score -= 0.2
 
@@ -14,7 +14,7 @@ def heuristic_score(signals: dict) -> float:
     if signals["length"] < 120:
         score -= 0.1
 
-    # 🟢 Positive signals (credibility)
+    # Positive signals (credibility)
     if signals["trusted_domain_count"] >= 1:
         score += 0.25
 
