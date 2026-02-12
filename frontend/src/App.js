@@ -78,7 +78,7 @@ function AppContent() {
 
   return (
     <div className={isDark ? 'dark' : 'light'}>
-      <div className="min-h-screen bg-white dark:black text-slate-900 dark:text-slate-50 transition-colors duration-300">
+      <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-slate-50 transition-colors duration-300">
         <Header 
           isDark={isDark} 
           setIsDark={setIsDark} 
