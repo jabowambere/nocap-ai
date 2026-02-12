@@ -60,7 +60,7 @@ const UserDashboard = () => {
         throw new Error('Failed to analyze content');
       }
 
-      const data = await response.json();
+      await response.json();
       // Result handled - could display in modal or refresh history
       setContent('');
       setSourceUrl('');
