@@ -61,7 +61,9 @@ const UserDashboard = () => {
       }
 
       const data = await response.json();
-      setResult(data);
+      // Result handled - could display in modal or refresh history
+      setContent('');
+      setSourceUrl('');
     } catch (err) {
       setError('Error analyzing content. Make sure backend is running on port 3001.');
     } finally {
