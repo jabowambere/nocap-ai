@@ -9,13 +9,7 @@ const History = ({ token }) => {
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
 
-  useEffect(() => {
-    if (token) {
-      fetchData();
-    }
-  }, [token]);
-
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -42,7 +36,13 @@ const History = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchData();
+    }
+  }, [token, fetchData]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this analysis?')) return;

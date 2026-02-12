@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, AlertTriangle, AlertCircle, Brain, Target, TrendingUp } from 'lucide-react';
+import { Check, AlertTriangle, AlertCircle } from 'lucide-react';
 
 const ResultCard = ({ result }) => {
   const getVerdictConfig = () => {

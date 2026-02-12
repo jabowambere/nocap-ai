@@ -1,10 +1,8 @@
 import React from 'react';
-import { SignIn, SignUp, UserButton, useUser, useAuth } from '@clerk/clerk-react';
+import { SignIn } from '@clerk/clerk-react';
 import { X } from 'lucide-react';
 
 const ClerkAuth = ({ isOpen, onClose }) => {
-  const { user } = useUser();
-  const { signOut } = useAuth();
 
   if (!isOpen) return null;
 

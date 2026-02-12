@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user } = useUser();
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalAnalyses: 156,
     realNews: 89,
     fakeNews: 42,

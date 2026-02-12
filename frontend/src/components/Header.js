@@ -1,7 +1,6 @@
 import React from 'react';
-import { Moon, Sun, History as HistoryIcon, Shield, LogIn, LogOut, User, Sparkles } from 'lucide-react';
+import { Moon, Sun, Shield, LogIn, LogOut, Sparkles } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/clerk-react';
-import Avatar from './Avatar';
 
 const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
   const { user, isSignedIn } = useUser();

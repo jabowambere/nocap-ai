@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Loader2, X, Zap, Brain, Link, ExternalLink } from 'lucide-react';
+import { Loader2, X, Zap, Link, ExternalLink } from 'lucide-react';
 import ResultCard from './ResultCard';
 
 const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {

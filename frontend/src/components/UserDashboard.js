@@ -8,7 +8,6 @@ const UserDashboard = () => {
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   
   const recommendedSources = [
@@ -38,7 +37,6 @@ const UserDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setResult(null);
 
     if (!content.trim()) {
       setError('Please enter news content to analyze');
