@@ -3,6 +3,7 @@ import { Loader2, X, Zap, Link, ExternalLink } from 'lucide-react';
 import ResultCard from './ResultCard';
 
 const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/detection/analyze', {
+      const response = await fetch(`${API_URL}/api/detection/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

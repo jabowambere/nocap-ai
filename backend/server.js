@@ -23,6 +23,21 @@ app.use('/api/detection', detectionRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/sync', syncRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Nocap AI Backend API',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      detection: '/api/detection',
+      webhooks: '/api/webhooks',
+      sync: '/api/sync'
+    }
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 

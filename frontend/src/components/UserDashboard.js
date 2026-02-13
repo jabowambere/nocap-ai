@@ -3,6 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X } from 'lucide-react';
 
 const UserDashboard = () => {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [content, setContent] = useState('');
@@ -45,7 +46,7 @@ const UserDashboard = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/detection/analyze', {
+      const response = await fetch(`${API_URL}/api/detection/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
