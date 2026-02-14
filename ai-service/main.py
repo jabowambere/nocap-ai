@@ -16,8 +16,16 @@ def analyze(request: TextRequest):
     signals = basic_signals(text)
     score = heuristic_score(signals)
 
+    # Determine verdict
+    if score >= 0.7:
+        verdict = "likely_real"
+    elif score >= 0.5:
+        verdict = "uncertain"
+    else:
+        verdict = "likely_fake"
+
     return {
         "credibility_score": score,
         "signals": signals,
-        "verdict": "likely_fake" if score < 0.4 else "uncertain"
+        "verdict": verdict
     }

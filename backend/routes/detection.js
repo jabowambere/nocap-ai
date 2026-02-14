@@ -1,40 +1,61 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const mongoose = require('mongoose');
 
 const router = express.Router();
 
-// MongoDB Schema for Analysis Results
-const analysisSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  title: String,
-  text: String,
-  credibilityScore: Number,
-  verdict: String,
-  analysis: String,
-  indicators: [String],
-  sources: [String],
-  contentLength: Number,
-  createdAt: { type: Date, default: Date.now },
-});
+// Domain reputation lists
+const TRUSTED_DOMAINS = [
+  'bbc.com', 'bbc.co.uk', 'reuters.com', 'apnews.com', 'ap.org',
+  'npr.org', 'theguardian.com', 'nytimes.com', 'washingtonpost.com',
+  'bloomberg.com', 'ft.com', 'wsj.com', 'economist.com',
+  'nature.com', 'science.org', 'scientificamerican.com',
+  'cnn.com', 'cbsnews.com', 'nbcnews.com', 'abcnews.go.com',
+  'pbs.org', 'propublica.org', 'factcheck.org', 'snopes.com'
+];
 
-const Analysis = mongoose.model('Analysis', analysisSchema);
+const UNTRUSTED_DOMAINS = [
+  'fakenews.com', 'clickbait.net', 'conspiracy.com',
+  'naturalnews.com', 'infowars.com', 'beforeitsnews.com',
+  'worldnewsdailyreport.com', 'nationalreport.net'
+];
 
-// Fake news detection data and logic
-const newsDatabase = {
-  keywords: {
-    reliable: ['study shows', 'according to', 'researchers found', 'data indicates', 'evidence suggests', 'verified by', 'confirmed by'],
-    unreliable: ['shocking', 'unbelievable', 'you won\'t believe', 'doctors hate', 'they don\'t want you to know', 'secret', 'exposed', 'coverup']
-  },
-  sources: {
-    trusted: ['BBC', 'Reuters', 'AP News', 'NPR', 'The Guardian', 'Associated Press', 'Bloomberg', 'Financial Times'],
-    untrusted: ['unknown source', 'anonymous source', 'viral posts', 'social media claims']
+function analyzeDomain(url) {
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname.replace('www.', '').toLowerCase();
+    
+    // Check if domain is trusted
+    if (TRUSTED_DOMAINS.some(trusted => domain.includes(trusted))) {
+      return {
+        score: 0.25,
+        status: 'trusted',
+        message: `Source from trusted domain: ${domain}`
+      };
+    }
+    
+    // Check if domain is untrusted
+    if (UNTRUSTED_DOMAINS.some(untrusted => domain.includes(untrusted))) {
+      return {
+        score: -0.3,
+        status: 'untrusted',
+        message: `Source from questionable domain: ${domain}`
+      };
+    }
+    
+    // Unknown domain
+    return {
+      score: 0,
+      status: 'unknown',
+      message: `Source from unverified domain: ${domain}`
+    };
+  } catch (error) {
+    return {
+      score: 0,
+      status: 'invalid',
+      message: 'Invalid URL format'
+    };
   }
-};
+}
 
 // Detection route (public)
 router.post('/analyze', async (req, res) => {
@@ -44,228 +65,119 @@ router.post('/analyze', async (req, res) => {
     return res.status(400).json({ error: 'Please provide content to analyze' });
   }
 
-  const content = text.toLowerCase();
+  try {
+    // Call AI service
+    const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    const aiResponse = await fetch(`${AI_SERVICE_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
 
-  // Calculate reliability score (0-100)
-  let score = 50; // neutral starting point
-  let indicators = [];
-  let sources = [];
-  let analysis = '';
-
-  // Check for unreliable keywords
-  newsDatabase.keywords.unreliable.forEach(keyword => {
-    if (content.includes(keyword)) {
-      score -= 8;
-      indicators.push(`Contains sensationalist language: "${keyword}"`);
+    if (!aiResponse.ok) {
+      throw new Error('AI service unavailable');
     }
-  });
 
-  // Check for reliable keywords
-  newsDatabase.keywords.reliable.forEach(keyword => {
-    if (content.includes(keyword)) {
-      score += 5;
-      indicators.push(`Contains credible language: "${keyword}"`);
-    }
-  });
-
-  // Check for source mentions
-  newsDatabase.sources.trusted.forEach(source => {
-    if (content.includes(source.toLowerCase())) {
-      score += 10;
-      sources.push(`Mentions trusted source: ${source}`);
-    }
-  });
-
-  newsDatabase.sources.untrusted.forEach(source => {
-    if (content.includes(source.toLowerCase())) {
-      score -= 10;
-      sources.push(`Relies on unverified source: ${source}`);
-    }
-  });
-
-  // Check for all caps (often fake news indicator)
-  const allCapsWords = content.split(' ').filter(word => word === word.toUpperCase() && word.length > 1);
-  if (allCapsWords.length > 2) {
-    score -= 5;
-    indicators.push('Contains excessive capitalization');
-  }
-
-  // Check for punctuation spam
-  const punctuationCount = (content.match(/[!?]{2,}/g) || []).length;
-  if (punctuationCount > 2) {
-    score -= 8;
-    indicators.push('Contains excessive punctuation');
-  }
-
-  // Check URL patterns
-  const urlCount = (content.match(/https?:\/\/[^\s]+/g) || []).length;
-  if (urlCount > 3) {
-    score -= 5;
-    indicators.push('Contains multiple links (common in clickbait)');
-  }
-
-  // Check for emotional language
-  const emotionalWords = ['angry', 'furious', 'devastated', 'shocking', 'heartbreaking', 'amazing'];
-  const emotionalCount = emotionalWords.filter(word => content.includes(word)).length;
-  if (emotionalCount > 1) {
-    score -= 6;
-    indicators.push('Contains excessive emotional language');
-  }
-
-  // Clamp score between 0 and 100
-  score = Math.max(0, Math.min(100, score));
-
-  // Determine verdict
-  let verdict = 'MODERATE';
-  if (score >= 70) {
-    verdict = 'LIKELY REAL';
-    analysis = 'This content appears to be from credible sources with factual language. Verify with official sources.';
-  } else if (score >= 50) {
-    verdict = 'UNCERTAIN';
-    analysis = 'This content has mixed indicators. Cross-reference with multiple sources before sharing.';
-  } else {
-    verdict = 'LIKELY FAKE';
-    analysis = 'This content shows patterns common in misinformation. Be cautious about sharing.';
-  }
-
-  // Check source URL credibility if provided
-  if (sourceUrl) {
-    const url = sourceUrl.toLowerCase();
-    const trustedDomains = ['bbc.com', 'reuters.com', 'apnews.com', 'npr.org', 'theguardian.com', 'bloomberg.com'];
-    const untrustedDomains = ['clickbait.com', 'fakenews.com', 'conspiracy.com'];
+    const aiResult = await aiResponse.json();
     
-    if (trustedDomains.some(domain => url.includes(domain))) {
-      score += 15;
-      sources.push(`Source from trusted domain: ${sourceUrl}`);
-    } else if (untrustedDomains.some(domain => url.includes(domain))) {
-      score -= 15;
-      sources.push(`Source from questionable domain: ${sourceUrl}`);
+    // Start with AI score
+    let finalScore = aiResult.credibility_score;
+    const indicators = [];
+    const sources = [];
+    let verdict = 'UNCERTAIN';
+    let analysis = '';
+
+    // Analyze domain if URL provided
+    if (sourceUrl) {
+      const domainAnalysis = analyzeDomain(sourceUrl);
+      finalScore += domainAnalysis.score;
+      sources.push(domainAnalysis.message);
+      
+      if (domainAnalysis.status === 'trusted') {
+        indicators.push('Source from verified trusted domain');
+      } else if (domainAnalysis.status === 'untrusted') {
+        indicators.push('Warning: Source from known unreliable domain');
+      } else if (domainAnalysis.status === 'unknown') {
+        indicators.push('Source domain not in verified database');
+      }
     }
+
+    // Clamp score between 0 and 1
+    finalScore = Math.max(0, Math.min(1, finalScore));
+    const scorePercent = Math.round(finalScore * 100);
+    
+    // Determine verdict based on final score
+    if (scorePercent >= 70) {
+      verdict = 'LIKELY REAL';
+      analysis = 'This content appears credible with factual language and trusted sources.';
+    } else if (scorePercent >= 50) {
+      verdict = 'UNCERTAIN';
+      analysis = 'This content has mixed indicators. Cross-reference with multiple sources.';
+    } else {
+      verdict = 'LIKELY FAKE';
+      analysis = 'This content shows patterns common in misinformation. Be cautious.';
+    }
+
+    // Extract indicators from AI signals
+    if (aiResult.signals) {
+      if (aiResult.signals.all_caps_ratio > 0.1) indicators.push('Contains excessive capitalization');
+      if (aiResult.signals.exclamation_count > 3) indicators.push('Contains excessive punctuation');
+      if (aiResult.signals.question_count > 3) indicators.push('Contains many questions');
+      if (aiResult.signals.url_count > 3) indicators.push('Contains multiple links');
+      if (aiResult.signals.sensational_words > 0) indicators.push(`Contains ${aiResult.signals.sensational_words} sensationalist phrases`);
+      if (aiResult.signals.credible_words > 0) indicators.push(`Contains ${aiResult.signals.credible_words} credible research terms`);
+      if (aiResult.signals.emotional_words > 2) indicators.push('Uses excessive emotional language');
+      if (aiResult.signals.has_citations) indicators.push('Contains academic citations');
+    }
+
+    res.json({
+      credibilityScore: scorePercent,
+      verdict,
+      analysis,
+      indicators,
+      sources,
+      contentLength: text.length,
+      sourceUrl: sourceUrl || null
+    });
+  } catch (error) {
+    console.error('AI Service Error:', error);
+    // Fallback to basic analysis if AI service fails
+    res.json({
+      credibilityScore: 50,
+      verdict: 'UNCERTAIN',
+      analysis: 'Unable to perform full analysis. Please try again.',
+      indicators: ['AI service temporarily unavailable'],
+      sources: [],
+      contentLength: text.length,
+      sourceUrl: sourceUrl || null
+    });
   }
-
-  // Clamp score again after URL check
-  score = Math.max(0, Math.min(100, score));
-
-  const result = {
-    credibilityScore: score,
-    verdict,
-    analysis,
-    indicators,
-    sources,
-    contentLength: content.length,
-    sourceUrl: sourceUrl || null
-  };
-
-  // Don't save to database for public access
-  // Only admin dashboard will show saved analyses
-
-  res.json(result);
 });
 
 // Get all analyses for admin (protected)
 router.get('/history', protect, async (req, res) => {
-  // Ensure only admin can view history
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
-
-    const analyses = await Analysis.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(50);
-    res.json(analyses);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch history: ' + error.message });
-  }
+  res.json([]);
 });
 
 // Get analysis by ID (admin only)
 router.get('/history/:id', protect, async (req, res) => {
-  // Ensure only admin can view analysis
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
-
-    const analysis = await Analysis.findById(req.params.id);
-    if (!analysis) {
-      return res.status(404).json({ error: 'Analysis not found' });
-    }
-
-    // Check if user owns this analysis
-    if (analysis.userId.toString() !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized to view this analysis' });
-    }
-
-    res.json(analysis);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch analysis: ' + error.message });
-  }
+  res.status(404).json({ error: 'Analysis not found' });
 });
 
 // Delete analysis by ID (admin only)
 router.delete('/history/:id', protect, async (req, res) => {
-  // Ensure only admin can delete
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
-
-    const analysis = await Analysis.findById(req.params.id);
-    if (!analysis) {
-      return res.status(404).json({ error: 'Analysis not found' });
-    }
-
-    // Check if user owns this analysis
-    if (analysis.userId.toString() !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized to delete this analysis' });
-    }
-
-    await Analysis.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Analysis deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete analysis: ' + error.message });
-  }
+  res.status(404).json({ error: 'Analysis not found' });
 });
 
 // Get statistics for admin (protected)
 router.get('/stats', protect, async (req, res) => {
-  // Ensure only admin can view stats
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
-
-    const total = await Analysis.countDocuments({ userId: req.user.id });
-    const realNews = await Analysis.countDocuments({ userId: req.user.id, verdict: 'LIKELY REAL' });
-    const fakeNews = await Analysis.countDocuments({ userId: req.user.id, verdict: 'LIKELY FAKE' });
-    const uncertain = await Analysis.countDocuments({ userId: req.user.id, verdict: 'UNCERTAIN' });
-
-    const avgScore = await Analysis.aggregate([
-      { $match: { userId: mongoose.Types.ObjectId(req.user.id) } },
-      { $group: { _id: null, average: { $avg: '$credibilityScore' } } }
-    ]);
-
-    res.json({
-      total,
-      realNews,
-      fakeNews,
-      uncertain,
-      averageScore: avgScore[0]?.average || 0
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stats: ' + error.message });
-  }
+  res.json({
+    total: 0,
+    realNews: 0,
+    fakeNews: 0,
+    uncertain: 0,
+    averageScore: 0
+  });
 });
 
-module.exports = { router, Analysis };
+module.exports = { router };
