@@ -25,7 +25,7 @@ function analyzeDomain(url) {
     const domain = urlObj.hostname.replace('www.', '').toLowerCase();
     
     // Check if domain is trusted
-    if (TRUSTED_DOMAINS.some(trusted => domain.includes(trusted))) {
+    if (TRUSTED_DOMAINS.some(trusted => domain === trusted || domain.endsWith(`.${trusted}`))) {
       return {
         score: 0.25,
         status: 'trusted',
