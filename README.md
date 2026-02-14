@@ -52,6 +52,22 @@ nocap/
     └── .env
 ```
 
+## Database Setup
+
+### Supabase Tables
+
+Run the SQL scripts in Supabase SQL Editor:
+
+1. **Users table** - Already created via Clerk webhook
+2. **Analyses table** - Run `backend/database/create_analyses_table.sql`
+
+```bash
+# In Supabase Dashboard:
+# 1. Go to SQL Editor
+# 2. Copy content from backend/database/create_analyses_table.sql
+# 3. Run the script
+```
+
 ## Installation & Setup
 
 ### Prerequisites

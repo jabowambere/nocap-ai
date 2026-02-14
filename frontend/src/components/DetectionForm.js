@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Loader2, X, Zap, Link, ExternalLink } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
 import ResultCard from './ResultCard';
 
 const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
+  const { user } = useUser();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
@@ -38,7 +40,8 @@ const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
         },
         body: JSON.stringify({
           text: content.trim(),
-          sourceUrl: sourceUrl.trim()
+          sourceUrl: sourceUrl.trim(),
+          userId: user?.id || 'anonymous'
         }),
       });
 

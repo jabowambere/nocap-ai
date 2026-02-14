@@ -53,7 +53,8 @@ const UserDashboard = () => {
         },
         body: JSON.stringify({
           text: content.trim(),
-          sourceUrl: sourceUrl.trim()
+          sourceUrl: sourceUrl.trim(),
+          userId: user?.id || 'anonymous'
         }),
       });
 
