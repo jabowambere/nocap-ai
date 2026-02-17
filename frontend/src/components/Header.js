@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun, Shield, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { Moon, Sun, LogIn, LogOut, Sparkles } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/clerk-react';
 
 const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
@@ -13,9 +13,7 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3 cursor-pointer animate-in fade-in slide-in-from-left-8 duration-500 delay-200 hover:scale-105 transition-transform duration-200" onClick={() => navigate('/')}>
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-black rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:rotate-3">
-                <Shield className="text-white" size={24} />
-              </div>
+              <img src="/favicon.svg" alt="Nocap AI Logo" className="w-12 h-12 hover:shadow-xl transition-all duration-300 hover:rotate-3" />
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
                 <Sparkles className="text-white" size={10} />
               </div>
