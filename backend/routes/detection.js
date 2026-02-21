@@ -6,18 +6,35 @@ const router = express.Router();
 
 // Domain reputation lists
 const TRUSTED_DOMAINS = [
+  // Major News Organizations
   'bbc.com', 'bbc.co.uk', 'reuters.com', 'apnews.com', 'ap.org',
   'npr.org', 'theguardian.com', 'nytimes.com', 'washingtonpost.com',
   'bloomberg.com', 'ft.com', 'wsj.com', 'economist.com',
-  'nature.com', 'science.org', 'scientificamerican.com',
   'cnn.com', 'cbsnews.com', 'nbcnews.com', 'abcnews.go.com',
-  'pbs.org', 'propublica.org', 'factcheck.org', 'snopes.com'
+  'pbs.org', 'usatoday.com', 'time.com', 'newsweek.com',
+  // International News
+  'aljazeera.com', 'dw.com', 'france24.com', 'thelocal.com',
+  // Scientific & Academic
+  'nature.com', 'science.org', 'scientificamerican.com',
+  'nih.gov', 'cdc.gov', 'who.int', 'nasa.gov',
+  // Fact-Checking
+  'factcheck.org', 'snopes.com', 'politifact.com', 'fullfact.org',
+  // Investigative Journalism
+  'propublica.org', 'theintercept.com', 'bellingcat.com',
+  // African News
+  'igihe.com', 'newtimes.co.rw', 'africanews.com'
 ];
 
 const UNTRUSTED_DOMAINS = [
+  // Known Fake News Sites
   'fakenews.com', 'clickbait.net', 'conspiracy.com',
   'naturalnews.com', 'infowars.com', 'beforeitsnews.com',
-  'worldnewsdailyreport.com', 'nationalreport.net'
+  'worldnewsdailyreport.com', 'nationalreport.net',
+  'theonion.com', 'clickhole.com', 'empirenews.net',
+  'newslo.com', 'huzlers.com', 'react365.com',
+  // Conspiracy & Pseudoscience
+  'davidicke.com', 'veteranstoday.com', 'yournewswire.com',
+  'neonnettle.com', 'collective-evolution.com'
 ];
 
 function analyzeDomain(url) {
