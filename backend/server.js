@@ -16,12 +16,14 @@ const authRoutes = require('./routes/auth');
 const { router: detectionRoutes } = require('./routes/detection');
 const webhookRoutes = require('./routes/webhook');
 const syncRoutes = require('./routes/sync');
+const userRoutes = require('./routes/users');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/detection', detectionRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/users', userRoutes);
 
 // Root route
 app.get('/', (req, res) => {

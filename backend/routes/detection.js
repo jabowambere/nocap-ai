@@ -1,8 +1,13 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
 const supabase = require('../config/supabase');
+const OpenAI = require('openai');
 
 const router = express.Router();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // Domain reputation lists
 const TRUSTED_DOMAINS = [
@@ -131,6 +136,35 @@ router.post('/analyze', async (req, res) => {
     } else if (scorePercent >= 50) {
       verdict = 'UNCERTAIN';
       analysis = 'This content has mixed indicators. Cross-reference with multiple sources.';
+      
+      // Use OpenAI for uncertain cases if API key is available
+      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
+        try {
+          const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a fact-checking expert. Analyze news content for credibility. Respond with a JSON object containing: {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100, "reasoning": "brief explanation"}'
+              },
+              {
+                role: 'user',
+                content: `Analyze this news content for credibility:\n\n${text}${sourceUrl ? `\n\nSource: ${sourceUrl}` : ''}`
+              }
+            ],
+            temperature: 0.3,
+            max_tokens: 200
+          });
+          
+          const aiAnalysis = JSON.parse(completion.choices[0].message.content);
+          verdict = aiAnalysis.verdict;
+          finalScore = aiAnalysis.confidence / 100;
+          analysis = aiAnalysis.reasoning;
+          indicators.push('Enhanced with OpenAI analysis');
+        } catch (openaiError) {
+          console.error('OpenAI analysis failed:', openaiError.message);
+        }
+      }
     } else {
       verdict = 'LIKELY FAKE';
       analysis = 'This content shows patterns common in misinformation. Be cautious.';

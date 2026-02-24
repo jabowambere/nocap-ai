@@ -1,23 +1,95 @@
-import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
-import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
+import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 const AdminDashboard = () => {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const { user } = useUser();
-  const [stats] = useState({
-    totalAnalyses: 156,
-    realNews: 89,
-    fakeNews: 42,
-    uncertain: 25,
-    totalUsers: 12,
-    recentAnalyses: [
-      { id: 1, title: 'Breaking: New Climate Report', verdict: 'LIKELY REAL', score: 85, date: '2 hours ago' },
-      { id: 2, title: 'Shocking Discovery Scientists Hate', verdict: 'LIKELY FAKE', score: 23, date: '5 hours ago' },
-      { id: 3, title: 'Economic Update Q4 2024', verdict: 'LIKELY REAL', score: 78, date: '1 day ago' },
-      { id: 4, title: 'Miracle Cure Found!', verdict: 'LIKELY FAKE', score: 15, date: '1 day ago' },
-      { id: 5, title: 'Tech Industry Analysis', verdict: 'UNCERTAIN', score: 55, date: '2 days ago' }
-    ]
+  const { getToken } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalAnalyses: 0,
+    realNews: 0,
+    fakeNews: 0,
+    uncertain: 0,
+    totalUsers: 0,
+    avgScore: 0
   });
+  const [recentAnalyses, setRecentAnalyses] = useState([]);
+
+  useEffect(() => {
+    if (getToken) {
+      fetchAdminData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchAdminData = async () => {
+    try {
+      const token = await getToken();
+      
+      console.log('Fetching admin data...');
+      
+      // Fetch all analyses
+      const analysesRes = await fetch(`${API_URL}/api/detection/all-analyses`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!analysesRes.ok) {
+        console.error('Analyses fetch failed:', analysesRes.status);
+        setLoading(false);
+        return;
+      }
+      
+      const analyses = await analysesRes.json();
+      console.log('Analyses:', analyses);
+
+      // Fetch users count
+      const usersRes = await fetch(`${API_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!usersRes.ok) {
+        console.error('Users fetch failed:', usersRes.status);
+        setLoading(false);
+        return;
+      }
+      
+      const users = await usersRes.json();
+      console.log('Users:', users);
+
+      // Calculate stats
+      const realCount = analyses.filter(a => a.verdict === 'LIKELY REAL').length;
+      const fakeCount = analyses.filter(a => a.verdict === 'LIKELY FAKE').length;
+      const uncertainCount = analyses.filter(a => a.verdict === 'UNCERTAIN').length;
+      const avgScore = analyses.length > 0
+        ? Math.round(analyses.reduce((sum, a) => sum + a.credibility_score, 0) / analyses.length)
+        : 0;
+
+      setStats({
+        totalAnalyses: analyses.length,
+        realNews: realCount,
+        fakeNews: fakeCount,
+        uncertain: uncertainCount,
+        totalUsers: users.length,
+        avgScore
+      });
+
+      // Format recent analyses
+      setRecentAnalyses(analyses.slice(0, 5).map(a => ({
+        id: a.id,
+        title: a.text.substring(0, 50) + '...',
+        verdict: a.verdict,
+        score: a.credibility_score,
+        date: new Date(a.created_at).toLocaleString()
+      })));
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch admin data:', error);
+      setLoading(false);
+    }
+  };
 
   const StatCard = ({ icon: Icon, label, value, color, trend }) => (
     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4">
@@ -52,6 +124,14 @@ const AdminDashboard = () => {
     if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
     return 'text-red-600 dark:text-red-400';
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center">
+        <Loader2 className="animate-spin text-slate-400" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-black py-8 px-4">
@@ -110,36 +190,42 @@ const AdminDashboard = () => {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-slate-600 dark:text-slate-400">Real News</span>
-                  <span className="text-sm font-semibold text-emerald-600">{Math.round((stats.realNews / stats.totalAnalyses) * 100)}%</span>
+                  <span className="text-sm font-semibold text-emerald-600">
+                    {stats.totalAnalyses > 0 ? Math.round((stats.realNews / stats.totalAnalyses) * 100) : 0}%
+                  </span>
                 </div>
                 <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${(stats.realNews / stats.totalAnalyses) * 100}%` }}
+                    style={{ width: `${stats.totalAnalyses > 0 ? (stats.realNews / stats.totalAnalyses) * 100 : 0}%` }}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-slate-600 dark:text-slate-400">Fake News</span>
-                  <span className="text-sm font-semibold text-red-600">{Math.round((stats.fakeNews / stats.totalAnalyses) * 100)}%</span>
+                  <span className="text-sm font-semibold text-red-600">
+                    {stats.totalAnalyses > 0 ? Math.round((stats.fakeNews / stats.totalAnalyses) * 100) : 0}%
+                  </span>
                 </div>
                 <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${(stats.fakeNews / stats.totalAnalyses) * 100}%` }}
+                    style={{ width: `${stats.totalAnalyses > 0 ? (stats.fakeNews / stats.totalAnalyses) * 100 : 0}%` }}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-slate-600 dark:text-slate-400">Uncertain</span>
-                  <span className="text-sm font-semibold text-yellow-600">{Math.round((stats.uncertain / stats.totalAnalyses) * 100)}%</span>
+                  <span className="text-sm font-semibold text-yellow-600">
+                    {stats.totalAnalyses > 0 ? Math.round((stats.uncertain / stats.totalAnalyses) * 100) : 0}%
+                  </span>
                 </div>
                 <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${(stats.uncertain / stats.totalAnalyses) * 100}%` }}
+                    style={{ width: `${stats.totalAnalyses > 0 ? (stats.uncertain / stats.totalAnalyses) * 100 : 0}%` }}
                   />
                 </div>
               </div>
@@ -155,21 +241,25 @@ const AdminDashboard = () => {
                   <Activity className="text-blue-500" size={20} />
                   <span className="text-sm text-slate-600 dark:text-slate-400">Avg Score</span>
                 </div>
-                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">67%</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{stats.avgScore}%</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="text-emerald-500" size={20} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Accuracy</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Real Rate</span>
                 </div>
-                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">94%</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {stats.totalAnalyses > 0 ? Math.round((stats.realNews / stats.totalAnalyses) * 100) : 0}%
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
                 <div className="flex items-center gap-3">
                   <Clock className="text-yellow-500" size={20} />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Avg Time</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Fake Rate</span>
                 </div>
-                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">1.2s</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {stats.totalAnalyses > 0 ? Math.round((stats.fakeNews / stats.totalAnalyses) * 100) : 0}%
+                </span>
               </div>
             </div>
           </div>
@@ -178,8 +268,11 @@ const AdminDashboard = () => {
         {/* Recent Analyses */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-8 delay-400">
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">Recent Analyses</h2>
+          {recentAnalyses.length === 0 ? (
+            <p className="text-center text-slate-500 dark:text-slate-400 py-8">No analyses yet</p>
+          ) : (
           <div className="space-y-3">
-            {stats.recentAnalyses.map((analysis, idx) => (
+            {recentAnalyses.map((analysis, idx) => (
               <div 
                 key={analysis.id}
                 className={`flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer animate-in fade-in slide-in-from-left-4 delay-${500 + idx * 100}`}
@@ -208,6 +301,7 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </div>

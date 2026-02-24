@@ -1,15 +1,58 @@
-import React, { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X } from 'lucide-react';
 
 const UserDashboard = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userAnalyses, setUserAnalyses] = useState([]);
+  const [stats, setStats] = useState({
+    totalAnalyses: 0,
+    avgScore: 0,
+    realCount: 0,
+    fakeCount: 0
+  });
+  const [fetchingHistory, setFetchingHistory] = useState(true);
+  
+  const fetchHistory = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/api/detection/history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      setUserAnalyses(data);
+      
+      const realCount = data.filter(a => a.verdict === 'LIKELY REAL').length;
+      const fakeCount = data.filter(a => a.verdict === 'LIKELY FAKE').length;
+      const avgScore = data.length > 0
+        ? Math.round(data.reduce((sum, a) => sum + a.credibility_score, 0) / data.length)
+        : 0;
+      
+      setStats({
+        totalAnalyses: data.length,
+        avgScore,
+        realCount,
+        fakeCount
+      });
+      
+      setFetchingHistory(false);
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+      setFetchingHistory(false);
+    }
+  }, [API_URL, getToken]);
+  
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
   
   const recommendedSources = [
     { name: 'Reuters', url: 'https://reuters.com', category: 'News Agency' },
@@ -19,21 +62,6 @@ const UserDashboard = () => {
     { name: 'Snopes', url: 'https://snopes.com', category: 'Fact Check' },
     { name: 'FactCheck.org', url: 'https://factcheck.org', category: 'Fact Check' }
   ];
-  
-  const userAnalyses = [
-    { id: 1, title: 'Climate Change Report 2024', verdict: 'LIKELY REAL', score: 87, date: '2024-01-20', content: 'Scientists confirm rising global temperatures...' },
-    { id: 2, title: 'Miracle Weight Loss Pill', verdict: 'LIKELY FAKE', score: 18, date: '2024-01-19', content: 'Lose 50 pounds in one week...' },
-    { id: 3, title: 'Tech Company Earnings', verdict: 'LIKELY REAL', score: 82, date: '2024-01-18', content: 'Q4 earnings exceed expectations...' },
-    { id: 4, title: 'Celebrity Scandal Exposed', verdict: 'UNCERTAIN', score: 54, date: '2024-01-17', content: 'Anonymous sources claim...' },
-    { id: 5, title: 'New Medical Breakthrough', verdict: 'LIKELY REAL', score: 76, date: '2024-01-16', content: 'Peer-reviewed study shows...' },
-  ];
-
-  const stats = {
-    totalAnalyses: userAnalyses.length,
-    avgScore: Math.round(userAnalyses.reduce((acc, a) => acc + a.score, 0) / userAnalyses.length),
-    realCount: userAnalyses.filter(a => a.verdict === 'LIKELY REAL').length,
-    fakeCount: userAnalyses.filter(a => a.verdict === 'LIKELY FAKE').length,
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,9 +91,9 @@ const UserDashboard = () => {
       }
 
       await response.json();
-      // Result handled - could display in modal or refresh history
       setContent('');
       setSourceUrl('');
+      fetchHistory();
     } catch (err) {
       setError('Error analyzing content. Make sure backend is running on port 3001.');
     } finally {
@@ -102,7 +130,7 @@ const UserDashboard = () => {
   };
 
   const filteredAnalyses = userAnalyses.filter(a => 
-    a.title.toLowerCase().includes(searchTerm.toLowerCase())
+    a.text?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -278,6 +306,16 @@ const UserDashboard = () => {
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Analysis History</h2>
           </div>
           
+          {fetchingHistory ? (
+            <div className="p-12 flex items-center justify-center">
+              <Loader2 className="animate-spin text-slate-400" size={32} />
+            </div>
+          ) : filteredAnalyses.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="mx-auto text-slate-400 mb-4" size={48} />
+              <p className="text-slate-600 dark:text-slate-400">No analyses found</p>
+            </div>
+          ) : (
           <div className="divide-y divide-slate-200 dark:divide-slate-800">
             {filteredAnalyses.map((analysis, idx) => (
               <div 
@@ -289,15 +327,15 @@ const UserDashboard = () => {
                     {getVerdictIcon(analysis.verdict)}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                        {analysis.title}
+                        {analysis.text.substring(0, 60)}...
                       </h3>
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 line-clamp-1">
-                        {analysis.content}
+                        {analysis.source_url || 'No source URL'}
                       </p>
                       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1">
                           <Clock size={14} />
-                          {new Date(analysis.date).toLocaleDateString()}
+                          {new Date(analysis.created_at).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -305,8 +343,8 @@ const UserDashboard = () => {
                   
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className={`text-2xl font-bold ${getScoreColor(analysis.score)}`}>
-                        {analysis.score}%
+                      <p className={`text-2xl font-bold ${getScoreColor(analysis.credibility_score)}`}>
+                        {analysis.credibility_score}%
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">confidence</p>
                     </div>
@@ -318,14 +356,8 @@ const UserDashboard = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
-
-        {filteredAnalyses.length === 0 && (
-          <div className="text-center py-12">
-            <FileText className="mx-auto text-slate-400 mb-4" size={48} />
-            <p className="text-slate-600 dark:text-slate-400">No analyses found</p>
-          </div>
-        )}
       </div>
     </div>
   );

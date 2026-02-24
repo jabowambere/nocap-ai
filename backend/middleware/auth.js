@@ -1,6 +1,9 @@
-const jwt = require('jsonwebtoken');
+const { createClerkClient } = require('@clerk/clerk-sdk-node');
 
-// Middleware to verify JWT token
+// Initialize Clerk with secret key
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+// Middleware to verify Clerk token
 exports.protect = async (req, res, next) => {
   try {
     let token;
@@ -10,23 +13,30 @@ exports.protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
     }
 
-    // Check for token in cookies
-    if (!token && req.cookies?.token) {
-      token = req.cookies.token;
-    }
-
     if (!token) {
       return res.status(401).json({ error: 'Not authorized to access this route' });
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
+      // Verify Clerk session token
+      const sessionClaims = await clerk.verifyToken(token);
+      
+      // Get user from Clerk
+      const user = await clerk.users.getUser(sessionClaims.sub);
+      
+      req.user = {
+        clerkId: user.id,
+        email: user.emailAddresses[0]?.emailAddress,
+        role: user.publicMetadata?.role || 'user'
+      };
+      
       next();
     } catch (error) {
+      console.error('Token verification failed:', error);
       return res.status(401).json({ error: 'Not authorized to access this route' });
     }
   } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -35,7 +45,7 @@ exports.protect = async (req, res, next) => {
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Not authorized to access this route' });
+      return res.status(403).json({ error: `Access denied. Required role: ${roles.join(' or ')}` });
     }
     next();
   };
