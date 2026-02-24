@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X } from 'lucide-react';
+import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X, ArrowUpDown } from 'lucide-react';
 
 const UserDashboard = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -19,6 +19,10 @@ const UserDashboard = () => {
     fakeCount: 0
   });
   const [fetchingHistory, setFetchingHistory] = useState(true);
+  const [showModal, setShowModal] = useState(null);
+  const [modalSearchTerm, setModalSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [filterVerdict, setFilterVerdict] = useState('all');
   
   const fetchHistory = useCallback(async () => {
     try {
@@ -133,6 +137,29 @@ const UserDashboard = () => {
     a.text?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getModalFilteredAnalyses = () => {
+    let filtered = userAnalyses;
+    
+    if (filterVerdict !== 'all') {
+      filtered = filtered.filter(a => a.verdict === filterVerdict);
+    }
+    
+    if (modalSearchTerm) {
+      filtered = filtered.filter(a => 
+        a.text?.toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
+        a.source_url?.toLowerCase().includes(modalSearchTerm.toLowerCase())
+      );
+    }
+    
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'date') return new Date(b.created_at) - new Date(a.created_at);
+      if (sortBy === 'score') return b.credibility_score - a.credibility_score;
+      return 0;
+    });
+    
+    return sorted;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-black py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -239,7 +266,7 @@ const UserDashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 mt-12">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4">
+          <div onClick={() => { setShowModal(true); setFilterVerdict('all'); setModalSearchTerm(''); }} className="cursor-pointer bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                 <FileText className="text-slate-600 dark:text-slate-400" size={20} />
@@ -249,7 +276,7 @@ const UserDashboard = () => {
             <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{stats.totalAnalyses}</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 delay-100">
+          <div onClick={() => { setShowModal(true); setFilterVerdict('LIKELY REAL'); setModalSearchTerm(''); }} className="cursor-pointer bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 delay-100">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                 <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
@@ -259,7 +286,7 @@ const UserDashboard = () => {
             <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.realCount}</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 delay-200">
+          <div onClick={() => { setShowModal(true); setFilterVerdict('LIKELY FAKE'); setModalSearchTerm(''); }} className="cursor-pointer bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 delay-200">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                 <XCircle className="text-red-600 dark:text-red-400" size={20} />
@@ -359,6 +386,81 @@ const UserDashboard = () => {
           )}
         </div>
       </div>
+      
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {filterVerdict === 'all' ? 'All My Analyses' : `${filterVerdict} News`}
+              </h2>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Search and Sort */}
+              <div className="flex gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search analyses..."
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+                  />
+                </div>
+                <button
+                  onClick={() => setSortBy(sortBy === 'date' ? 'score' : 'date')}
+                  className="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                >
+                  <ArrowUpDown size={20} />
+                  <span>Sort by {sortBy === 'date' ? 'Score' : 'Date'}</span>
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="max-h-[60vh] overflow-y-auto space-y-3">
+                {getModalFilteredAnalyses().length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">No analyses found</p>
+                ) : (
+                  getModalFilteredAnalyses().map(analysis => (
+                    <div key={analysis.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-1">
+                          {getVerdictIcon(analysis.verdict)}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                              {analysis.text.substring(0, 100)}...
+                            </p>
+                            {analysis.source_url && (
+                              <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">{analysis.source_url}</p>
+                            )}
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {new Date(analysis.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-2xl font-bold ${getScoreColor(analysis.credibility_score)}`}>
+                            {analysis.credibility_score}%
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getVerdictColor(analysis.verdict)}`}>
+                            {analysis.verdict}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

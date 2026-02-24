@@ -113,7 +113,15 @@ router.post('/analyze', async (req, res) => {
     // Analyze domain if URL provided
     if (sourceUrl) {
       const domainAnalysis = analyzeDomain(sourceUrl);
-      finalScore += domainAnalysis.score;
+      
+      // Only apply domain boost if content score is reasonable
+      // Don't let domain alone determine verdict
+      if (domainAnalysis.status === 'trusted' && finalScore >= 0.4) {
+        finalScore += domainAnalysis.score;
+      } else if (domainAnalysis.status === 'untrusted') {
+        finalScore += domainAnalysis.score;
+      }
+      
       sources.push(domainAnalysis.message);
       
       if (domainAnalysis.status === 'trusted') {
@@ -137,9 +145,13 @@ router.post('/analyze', async (req, res) => {
       verdict = 'UNCERTAIN';
       analysis = 'This content has mixed indicators. Cross-reference with multiple sources.';
       
+      console.log('🤖 Uncertain verdict detected, checking OpenAI...');
+      
       // Use OpenAI for uncertain cases if API key is available
       if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
         try {
+          console.log('🔑 OpenAI API key found, calling GPT-3.5...');
+          
           const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
@@ -156,19 +168,29 @@ router.post('/analyze', async (req, res) => {
             max_tokens: 200
           });
           
+          console.log('✅ OpenAI response received:', completion.choices[0].message.content);
+          
           const aiAnalysis = JSON.parse(completion.choices[0].message.content);
           verdict = aiAnalysis.verdict;
-          finalScore = aiAnalysis.confidence / 100;
+          const newScore = aiAnalysis.confidence / 100;
+          finalScore = newScore;
           analysis = aiAnalysis.reasoning;
-          indicators.push('Enhanced with OpenAI analysis');
+          indicators.push('✨ Enhanced with OpenAI GPT-3.5 analysis');
+          
+          console.log('📊 OpenAI verdict:', verdict, 'Score:', Math.round(newScore * 100) + '%');
         } catch (openaiError) {
-          console.error('OpenAI analysis failed:', openaiError.message);
+          console.error('❌ OpenAI analysis failed:', openaiError.message);
         }
+      } else {
+        console.log('⚠️ OpenAI API key not configured');
       }
     } else {
       verdict = 'LIKELY FAKE';
       analysis = 'This content shows patterns common in misinformation. Be cautious.';
     }
+    
+    // Recalculate score percent after OpenAI
+    const finalScorePercent = Math.round(finalScore * 100);
 
     // Extract indicators from AI signals
     if (aiResult.signals) {
@@ -183,13 +205,13 @@ router.post('/analyze', async (req, res) => {
     }
 
     // Save to database BEFORE sending response
-    console.log('Saving to database:', { userId, scorePercent, verdict });
+    console.log('Saving to database:', { userId, score: finalScorePercent, verdict });
     
     const { data: savedData, error: dbError } = await supabase.from('analyses').insert({
       user_id: userId || 'anonymous',
       text: text.substring(0, 1000),
       source_url: sourceUrl || null,
-      credibility_score: scorePercent,
+      credibility_score: finalScorePercent,
       verdict,
       analysis,
       indicators,
@@ -204,7 +226,7 @@ router.post('/analyze', async (req, res) => {
     }
 
     res.json({
-      credibilityScore: scorePercent,
+      credibilityScore: finalScorePercent,
       verdict,
       analysis,
       indicators,

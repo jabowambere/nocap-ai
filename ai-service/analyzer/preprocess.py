@@ -13,7 +13,12 @@ def basic_signals(text: str) -> dict:
     sensational_count = sum(1 for word in sensational_words if word in text_lower)
     
     # Credible keywords
-    credible_words = ['study shows', 'research found', 'according to', 'data indicates', 'evidence suggests', 'scientists', 'researchers', 'peer-reviewed']
+    credible_words = [
+        'study shows', 'research found', 'according to', 'data indicates', 'evidence suggests', 
+        'scientists', 'researchers', 'peer-reviewed', 'officials', 'executives', 'experts',
+        'analysis', 'report', 'investigation', 'confirmed', 'announced', 'stated',
+        'government', 'administration', 'department', 'agency', 'industry', 'companies'
+    ]
     credible_count = sum(1 for word in credible_words if word in text_lower)
     
     # Trusted sources

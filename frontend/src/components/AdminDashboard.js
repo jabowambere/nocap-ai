@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X } from 'lucide-react';
 
 const AdminDashboard = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -16,6 +16,12 @@ const AdminDashboard = () => {
     avgScore: 0
   });
   const [recentAnalyses, setRecentAnalyses] = useState([]);
+  const [allAnalyses, setAllAnalyses] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [showModal, setShowModal] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [filterVerdict, setFilterVerdict] = useState('all');
 
   useEffect(() => {
     if (getToken) {
@@ -43,6 +49,8 @@ const AdminDashboard = () => {
       
       const analyses = await analysesRes.json();
       console.log('Analyses:', analyses);
+      
+      setAllAnalyses(analyses);
 
       // Fetch users count
       const usersRes = await fetch(`${API_URL}/api/users`, {
@@ -57,6 +65,8 @@ const AdminDashboard = () => {
       
       const users = await usersRes.json();
       console.log('Users:', users);
+      
+      setAllUsers(users);
 
       // Calculate stats
       const realCount = analyses.filter(a => a.verdict === 'LIKELY REAL').length;
@@ -125,6 +135,37 @@ const AdminDashboard = () => {
     return 'text-red-600 dark:text-red-400';
   };
 
+  const getFilteredAnalyses = () => {
+    let filtered = allAnalyses;
+    
+    if (filterVerdict !== 'all') {
+      filtered = filtered.filter(a => a.verdict === filterVerdict);
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter(a => 
+        a.text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.source_url?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'date') return new Date(b.created_at) - new Date(a.created_at);
+      if (sortBy === 'score') return b.credibility_score - a.credibility_score;
+      return 0;
+    });
+    
+    return sorted;
+  };
+
+  const getFilteredUsers = () => {
+    if (!searchTerm) return allUsers;
+    return allUsers.filter(u => 
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.clerk_id?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center">
@@ -148,34 +189,42 @@ const AdminDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            icon={FileText}
-            label="Total Analyses"
-            value={stats.totalAnalyses}
-            color="bg-gradient-to-br from-slate-700 to-black"
-            trend={12}
-          />
-          <StatCard
-            icon={CheckCircle}
-            label="Real News Detected"
-            value={stats.realNews}
-            color="bg-gradient-to-br from-emerald-500 to-emerald-600"
-            trend={8}
-          />
-          <StatCard
-            icon={XCircle}
-            label="Fake News Detected"
-            value={stats.fakeNews}
-            color="bg-gradient-to-br from-red-500 to-red-600"
-            trend={-5}
-          />
-          <StatCard
-            icon={Users}
-            label="Total Users"
-            value={stats.totalUsers}
-            color="bg-gradient-to-br from-blue-500 to-blue-600"
-            trend={15}
-          />
+          <div onClick={() => { setShowModal('all'); setFilterVerdict('all'); setSearchTerm(''); }} className="cursor-pointer">
+            <StatCard
+              icon={FileText}
+              label="Total Analyses"
+              value={stats.totalAnalyses}
+              color="bg-gradient-to-br from-slate-700 to-black"
+              trend={12}
+            />
+          </div>
+          <div onClick={() => { setShowModal('all'); setFilterVerdict('LIKELY REAL'); setSearchTerm(''); }} className="cursor-pointer">
+            <StatCard
+              icon={CheckCircle}
+              label="Real News Detected"
+              value={stats.realNews}
+              color="bg-gradient-to-br from-emerald-500 to-emerald-600"
+              trend={8}
+            />
+          </div>
+          <div onClick={() => { setShowModal('all'); setFilterVerdict('LIKELY FAKE'); setSearchTerm(''); }} className="cursor-pointer">
+            <StatCard
+              icon={XCircle}
+              label="Fake News Detected"
+              value={stats.fakeNews}
+              color="bg-gradient-to-br from-red-500 to-red-600"
+              trend={-5}
+            />
+          </div>
+          <div onClick={() => { setShowModal('users'); setSearchTerm(''); }} className="cursor-pointer">
+            <StatCard
+              icon={Users}
+              label="Total Users"
+              value={stats.totalUsers}
+              color="bg-gradient-to-br from-blue-500 to-blue-600"
+              trend={15}
+            />
+          </div>
         </div>
 
         {/* Chart Section */}
@@ -304,6 +353,113 @@ const AdminDashboard = () => {
           )}
         </div>
       </div>
+      
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {showModal === 'users' ? 'All Users' : filterVerdict === 'all' ? 'All Analyses' : `${filterVerdict} News`}
+              </h2>
+              <button onClick={() => setShowModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Search and Sort */}
+              <div className="flex gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder={showModal === 'users' ? 'Search users...' : 'Search analyses...'}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+                  />
+                </div>
+                {showModal === 'all' && (
+                  <button
+                    onClick={() => setSortBy(sortBy === 'date' ? 'score' : 'date')}
+                    className="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    <ArrowUpDown size={20} />
+                    <span>Sort by {sortBy === 'date' ? 'Score' : 'Date'}</span>
+                  </button>
+                )}
+              </div>
+              
+              {/* Content */}
+              <div className="max-h-[60vh] overflow-y-auto space-y-3">
+                {showModal === 'users' ? (
+                  getFilteredUsers().length === 0 ? (
+                    <p className="text-center text-slate-500 py-8">No users found</p>
+                  ) : (
+                    getFilteredUsers().map(user => (
+                      <div key={user.clerk_id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{user.email}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{user.clerk_id}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            user.role === 'admin' 
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                              : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
+                          }`}>
+                            {user.role || 'user'}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  getFilteredAnalyses().length === 0 ? (
+                    <p className="text-center text-slate-500 py-8">No analyses found</p>
+                  ) : (
+                    getFilteredAnalyses().map(analysis => (
+                      <div key={analysis.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-4 flex-1">
+                            {getVerdictIcon(analysis.verdict)}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                                {analysis.text.substring(0, 100)}...
+                              </p>
+                              {analysis.source_url && (
+                                <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">{analysis.source_url}</p>
+                              )}
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {new Date(analysis.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-2xl font-bold ${getScoreColor(analysis.credibility_score)}`}>
+                              {analysis.credibility_score}%
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                              analysis.verdict === 'LIKELY REAL' 
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : analysis.verdict === 'LIKELY FAKE'
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}>
+                              {analysis.verdict}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
