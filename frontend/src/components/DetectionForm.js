@@ -5,7 +5,9 @@ import ResultCard from './ResultCard';
 
 const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
   const { user } = useUser();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  // Base URL for backend API; strip any trailing slash so we don't end up
+// with double‑slashes when concatenating paths.
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [loading, setLoading] = useState(false);

@@ -3,7 +3,8 @@ import { useUser, useAuth } from '@clerk/clerk-react';
 import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  // normalize backend URL and remove trailing slashes
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
   const { user } = useUser();
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
