@@ -41,7 +41,7 @@ const History = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, API_URL, joinUrl]);
 
   useEffect(() => {
     if (token) {
