@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Loader2, AlertCircle } from 'lucide-react';
 import Loader from './Loader';
 
+// helper: concatenate base and path without duplicating slashes
+const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
 const History = ({ token }) => {
   // make backend base address configurable and prevent trailing-slash bugs
   const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
-
-  const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 
   const [analyses, setAnalyses] = useState([]);
   const [stats, setStats] = useState(null);
@@ -41,7 +42,7 @@ const History = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  }, [token, API_URL, joinUrl]);
+  }, [token, API_URL]);
 
   useEffect(() => {
     if (token) {
