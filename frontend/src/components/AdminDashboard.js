@@ -5,6 +5,9 @@ import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, X
 const AdminDashboard = () => {
   // normalize backend URL and remove trailing slashes
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
+const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
   const { user } = useUser();
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,7 @@ const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').repla
       console.log('Fetching admin data...');
       
       // Fetch all analyses
-      const analysesRes = await fetch(`${API_URL}/api/detection/all-analyses`, {
+      const analysesRes = await fetch(joinUrl(API_URL, '/api/detection/all-analyses'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -54,7 +57,7 @@ const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').repla
       setAllAnalyses(analyses);
 
       // Fetch users count
-      const usersRes = await fetch(`${API_URL}/api/users`, {
+      const usersRes = await fetch(joinUrl(API_URL, '/api/users'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       

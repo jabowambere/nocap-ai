@@ -8,6 +8,11 @@ const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
   // Base URL for backend API; strip any trailing slash so we don't end up
 // with double‑slashes when concatenating paths.
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
+// helper that concatenates base and path without creating "//" sequences
+const joinUrl = (base, path) => {
+  return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+};
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,7 +40,7 @@ const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').repla
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/detection/analyze`, {
+      const response = await fetch(joinUrl(API_URL, '/api/detection/analyze'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
