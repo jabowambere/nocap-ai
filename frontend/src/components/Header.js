@@ -13,10 +13,7 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3 cursor-pointer animate-in fade-in slide-in-from-left-8 duration-500 delay-200 hover:scale-105 transition-transform duration-200" onClick={() => navigate('/')}>
             <div className="relative">
-              <img src="/favicon.svg" alt="Nocap AI Logo" className={`w-12 h-12 hover:shadow-xl transition-all duration-300 hover:rotate-3 ${isDark ? 'invert-0' : 'invert'}`} />
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
-                <Sparkles className="text-white" size={10} />
-              </div>
+              <img src="/favicon.svg" alt="Nocap AI Logo" className={`w-12 h-12 hover:shadow-xl transition-all duration-300 hover:rotate-3 ${isDark ? 'brightness-0 invert' : 'brightness-0'}`} />
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-black dark:from-slate-300 dark:to-white bg-clip-text text-transparent animate-in fade-in slide-in-from-left-4 duration-300 delay-400">Nocap AI</h1>
