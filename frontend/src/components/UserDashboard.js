@@ -3,7 +3,11 @@ import { useUser, useAuth } from '@clerk/clerk-react';
 import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X, ArrowUpDown } from 'lucide-react';
 
 const UserDashboard = () => {
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  // normalize backend URL and remove trailing slashes
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
+const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
   const { user } = useUser();
   const { getToken } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,7 +31,7 @@ const UserDashboard = () => {
   const fetchHistory = useCallback(async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/detection/history`, {
+      const response = await fetch(joinUrl(API_URL, '/api/detection/history'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -78,7 +82,7 @@ const UserDashboard = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/detection/analyze`, {
+      const response = await fetch(joinUrl(API_URL, '/api/detection/analyze'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

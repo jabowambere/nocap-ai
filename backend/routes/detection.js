@@ -5,9 +5,19 @@ const OpenAI = require('openai');
 
 const router = express.Router();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// initialize the OpenAI client lazily; if the key is absent the constructor
+// will throw, so only create the object when we actually need it later.
+let openai = null;
+if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
+  try {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  } catch (err) {
+    console.error('⚠️ Failed to initialize OpenAI client:', err.message);
+    openai = null;
+  }
+} else {
+  console.log('⚠️ OPENAI_API_KEY not set; skipping OpenAI client initialization');
+}
 
 // Domain reputation lists
 const TRUSTED_DOMAINS = [

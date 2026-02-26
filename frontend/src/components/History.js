@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Loader2, AlertCircle } from 'lucide-react';
 import Loader from './Loader';
 
+// helper: concatenate base and path without duplicating slashes
+const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
 const History = ({ token }) => {
+  // make backend base address configurable and prevent trailing-slash bugs
+  const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
   const [analyses, setAnalyses] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,10 +20,10 @@ const History = ({ token }) => {
     setError('');
     try {
       const [historyRes, statsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/detection/history', {
+        fetch(joinUrl(API_URL, '/api/detection/history'), {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/detection/stats', {
+        fetch(joinUrl(API_URL, '/api/detection/stats'), {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -36,7 +42,7 @@ const History = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, API_URL]);
 
   useEffect(() => {
     if (token) {
@@ -49,7 +55,7 @@ const History = ({ token }) => {
 
     setDeleting(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/detection/history/${id}`, {
+      const response = await fetch(joinUrl(API_URL, `/api/detection/history/${id}`), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
