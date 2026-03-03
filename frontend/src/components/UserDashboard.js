@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X, ArrowUpDown } from 'lucide-react';
+import ResultCard from './ResultCard';
 
 const UserDashboard = () => {
   // normalize backend URL and remove trailing slashes
@@ -27,6 +28,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   const [modalSearchTerm, setModalSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [filterVerdict, setFilterVerdict] = useState('all');
+  const [analysisResult, setAnalysisResult] = useState(null);
   
   const fetchHistory = useCallback(async () => {
     try {
@@ -98,7 +100,8 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         throw new Error('Failed to analyze content');
       }
 
-      await response.json();
+      const data = await response.json();
+      setAnalysisResult(data);
       setContent('');
       setSourceUrl('');
       fetchHistory();
@@ -237,6 +240,8 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                 </button>
               </form>
             </div>
+            
+            {analysisResult && <ResultCard result={analysisResult} />}
           </div>
 
           {/* Trusted Sources Sidebar */}

@@ -147,59 +147,68 @@ router.post('/analyze', async (req, res) => {
     finalScore = Math.max(0, Math.min(1, finalScore));
     const scorePercent = Math.round(finalScore * 100);
     
-    // Determine verdict based on final score
-    if (scorePercent >= 70) {
-      verdict = 'LIKELY REAL';
-      analysis = 'This content appears credible with factual language and trusted sources.';
-    } else if (scorePercent >= 50) {
-      verdict = 'UNCERTAIN';
-      analysis = 'This content has mixed indicators. Cross-reference with multiple sources.';
-      
-      console.log('🤖 Uncertain verdict detected, checking OpenAI...');
-      
-      // Use OpenAI for uncertain cases if API key is available
-      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
-        try {
-          console.log('🔑 OpenAI API key found, calling GPT-3.5...');
-          
-          const completion = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a fact-checking expert. Analyze news content for credibility. Respond with a JSON object containing: {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100, "reasoning": "brief explanation"}'
-              },
-              {
-                role: 'user',
-                content: `Analyze this news content for credibility:\n\n${text}${sourceUrl ? `\n\nSource: ${sourceUrl}` : ''}`
-              }
-            ],
-            temperature: 0.3,
-            max_tokens: 200
-          });
-          
-          console.log('✅ OpenAI response received:', completion.choices[0].message.content);
-          
-          const aiAnalysis = JSON.parse(completion.choices[0].message.content);
-          verdict = aiAnalysis.verdict;
-          const newScore = aiAnalysis.confidence / 100;
-          finalScore = newScore;
-          analysis = aiAnalysis.reasoning;
-          indicators.push('✨ Enhanced with OpenAI GPT-3.5 analysis');
-          
-          console.log('📊 OpenAI verdict:', verdict, 'Score:', Math.round(newScore * 100) + '%');
-        } catch (openaiError) {
-          console.error('❌ OpenAI analysis failed:', openaiError.message);
+    // ALWAYS use OpenAI for deeper analysis
+    console.log('🤖 Calling OpenAI for comprehensive analysis...');
+    
+    if (openai) {
+      try {
+        console.log('🔑 OpenAI client ready, analyzing content...');
+        
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert fact-checker. Analyze news content for credibility. Return ONLY a JSON object with: {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100 (use full range: 0 for completely false, 100 for completely true), "reasoning": "brief explanation"}. Be decisive - use extreme scores (0-20 or 80-100) when evidence is clear.'
+            },
+            {
+              role: 'user',
+              content: `Analyze this news for credibility:\n\nContent: ${text}${sourceUrl ? `\n\nSource URL: ${sourceUrl}` : ''}\n\nInitial AI score: ${scorePercent}%`
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 250
+        });
+        
+        console.log('✅ OpenAI response:', completion.choices[0].message.content);
+        
+        const aiAnalysis = JSON.parse(completion.choices[0].message.content);
+        verdict = aiAnalysis.verdict;
+        finalScore = aiAnalysis.confidence / 100;
+        analysis = aiAnalysis.reasoning;
+        indicators.push('✨ Enhanced with OpenAI GPT-3.5 deep analysis');
+        
+        console.log('📊 Final OpenAI verdict:', verdict, 'Score:', aiAnalysis.confidence + '%');
+      } catch (openaiError) {
+        console.error('❌ OpenAI analysis failed:', openaiError.message);
+        // Fall back to basic scoring
+        if (scorePercent >= 70) {
+          verdict = 'LIKELY REAL';
+          analysis = 'This content appears credible with factual language and trusted sources.';
+        } else if (scorePercent >= 50) {
+          verdict = 'UNCERTAIN';
+          analysis = 'This content has mixed indicators. Cross-reference with multiple sources.';
+        } else {
+          verdict = 'LIKELY FAKE';
+          analysis = 'This content shows patterns common in misinformation. Be cautious.';
         }
-      } else {
-        console.log('⚠️ OpenAI API key not configured');
       }
     } else {
-      verdict = 'LIKELY FAKE';
-      analysis = 'This content shows patterns common in misinformation. Be cautious.';
+      console.log('⚠️ OpenAI not available, using basic scoring');
+      // Basic verdict without OpenAI
+      if (scorePercent >= 70) {
+        verdict = 'LIKELY REAL';
+        analysis = 'This content appears credible with factual language and trusted sources.';
+      } else if (scorePercent >= 50) {
+        verdict = 'UNCERTAIN';
+        analysis = 'This content has mixed indicators. Cross-reference with multiple sources.';
+      } else {
+        verdict = 'LIKELY FAKE';
+        analysis = 'This content shows patterns common in misinformation. Be cautious.';
+      }
     }
     
-    // Recalculate score percent after OpenAI
+    // Recalculate final score percent after OpenAI
     const finalScorePercent = Math.round(finalScore * 100);
 
     // Extract indicators from AI signals
@@ -357,6 +366,27 @@ router.get('/stats', protect, async (req, res) => {
   } catch (error) {
     console.error('Stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Get analyses by user ID (admin only)
+router.get('/user/:userId', protect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('analyses')
+      .select('*')
+      .eq('user_id', req.params.userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('Fetch user analyses error:', error);
+    res.status(500).json({ error: 'Failed to fetch user analyses' });
   }
 });
 

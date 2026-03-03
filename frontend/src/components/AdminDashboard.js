@@ -26,6 +26,8 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [filterVerdict, setFilterVerdict] = useState('all');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userAnalyses, setUserAnalyses] = useState([]);
 
   useEffect(() => {
     if (getToken) {
@@ -168,6 +170,20 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
       u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.clerk_id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+  };
+
+  const fetchUserAnalyses = async (userId, userEmail) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/api/detection/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setUserAnalyses(data);
+      setSelectedUser({ id: userId, email: userEmail });
+    } catch (error) {
+      console.error('Failed to fetch user analyses:', error);
+    }
   };
 
   if (loading) {
@@ -402,7 +418,11 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                     <p className="text-center text-slate-500 py-8">No users found</p>
                   ) : (
                     getFilteredUsers().map(user => (
-                      <div key={user.clerk_id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                      <div 
+                        key={user.clerk_id} 
+                        className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                        onClick={() => fetchUserAnalyses(user.clerk_id, user.email)}
+                      >
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-slate-100">{user.email}</p>
@@ -460,6 +480,73 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                   )
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* User Analyses Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedUser(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{selectedUser.email}</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{userAnalyses.length} analyses</p>
+              </div>
+              <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-3">
+              {userAnalyses.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">No analyses yet</p>
+              ) : (
+                userAnalyses.map(analysis => (
+                  <div key={analysis.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        {getVerdictIcon(analysis.verdict)}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                            {analysis.text.substring(0, 150)}...
+                          </p>
+                          {analysis.source_url && (
+                            <p className="text-sm text-blue-600 dark:text-blue-400 mb-2 break-all">{analysis.source_url}</p>
+                          )}
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{analysis.analysis}</p>
+                          {analysis.indicators && analysis.indicators.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Indicators:</p>
+                              {analysis.indicators.map((ind, idx) => (
+                                <p key={idx} className="text-xs text-slate-600 dark:text-slate-400">• {ind}</p>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                            {new Date(analysis.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-2xl font-bold ${getScoreColor(analysis.credibility_score)}`}>
+                          {analysis.credibility_score}%
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          analysis.verdict === 'LIKELY REAL' 
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : analysis.verdict === 'LIKELY FAKE'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        }`}>
+                          {analysis.verdict}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
