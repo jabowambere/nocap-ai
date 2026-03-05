@@ -221,6 +221,8 @@ router.post('/analyze', async (req, res) => {
       if (aiResult.signals.credible_words > 0) indicators.push(`Contains ${aiResult.signals.credible_words} credible research terms`);
       if (aiResult.signals.emotional_words > 2) indicators.push('Uses excessive emotional language');
       if (aiResult.signals.has_citations) indicators.push('Contains academic citations');
+      if (aiResult.signals.neutral_tone) indicators.push('Uses neutral, informational tone');
+      if (aiResult.signals.trusted_domain_count > 0) indicators.push(`References ${aiResult.signals.trusted_domain_count} trusted domain(s)`);
     }
 
     // Save to database BEFORE sending response
