@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { Moon, Sun, LogIn, LogOut } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/clerk-react';
 
 const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
