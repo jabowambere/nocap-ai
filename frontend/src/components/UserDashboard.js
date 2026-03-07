@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X, ArrowUpDown } from 'lucide-react';
+import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X, ArrowUpDown, Trash2 } from 'lucide-react';
 import ResultCard from './ResultCard';
 
 const UserDashboard = () => {
@@ -29,6 +29,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   const [sortBy, setSortBy] = useState('date');
   const [filterVerdict, setFilterVerdict] = useState('all');
   const [analysisResult, setAnalysisResult] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   
   const fetchHistory = useCallback(async () => {
     try {
@@ -87,7 +88,8 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
       const response = await fetch(joinUrl(API_URL, '/api/detection/analyze'), {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getToken()}`
         },
         body: JSON.stringify({
           text: content.trim(),
@@ -166,31 +168,54 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
     
     return sorted;
   };
+
+  const deleteAnalysis = async (analysisId) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(joinUrl(API_URL, `/api/detection/history/${analysisId}`), {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to delete: ${error.error || 'Unknown error'}`);
+        return;
+      }
+      setUserAnalyses(prev => prev.filter(a => a.id !== analysisId));
+      setDeleteConfirm(null);
+      fetchHistory();
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert('Failed to delete analysis');
+    }
+  }
  
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black py-8 px-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-black py-4 sm:py-8 px-3 sm:px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+        <div className="mb-6 sm:mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-1 sm:mb-2">
             My Dashboard
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
             Welcome back, {user?.firstName || user?.username || 'User'}
           </p>
         </div>
 
         {/* Analysis Form Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Main Analysis Form */}
           <div className="lg:col-span-2 animate-in fade-in slide-in-from-left-8 duration-500 delay-200">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-3xl transition-all duration-300">
-              <div className="bg-gradient-to-r from-slate-700 to-black p-6">
-                <h2 className="text-2xl font-bold text-white mb-2">Analyze News Content</h2>
-                <p className="text-slate-200">Paste any news article or claim to verify its credibility</p>
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-3xl transition-all duration-300">
+              <div className="bg-gradient-to-r from-slate-700 to-black p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2">Analyze News Content</h2>
+                <p className="text-sm sm:text-base text-slate-200">Paste any news article or claim to verify its credibility</p>
               </div>
               
-              <form onSubmit={handleSubmit} className="p-8 space-y-6 bg-white dark:bg-black">
+              <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6 bg-white dark:bg-black">
                 <div>
                   <textarea
                     value={content}
@@ -274,7 +299,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 mt-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8 mt-8 sm:mt-12">
           <div onClick={() => { setShowModal(true); setFilterVerdict('all'); setModalSearchTerm(''); }} className="cursor-pointer bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -387,6 +412,9 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getVerdictColor(analysis.verdict)}`}>
                       {analysis.verdict}
                     </span>
+                    <button onClick={() => setDeleteConfirm(analysis.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
+                      <Trash2 size={18}/>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -460,11 +488,47 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getVerdictColor(analysis.verdict)}`}>
                             {analysis.verdict}
                           </span>
+                          <button onClick={() => setDeleteConfirm(analysis.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
+                            <Trash2 size={18}/>
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertCircle className="text-red-600 dark:text-red-400" size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center mb-2">
+                Delete Analysis?
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 text-center mb-6">
+                This action cannot be undone. The analysis will be permanently removed from your history.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteAnalysis(deleteConfirm)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold transition-all shadow-lg hover:shadow-xl"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

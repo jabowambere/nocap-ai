@@ -1,14 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import './App.css';
 import Header from './components/Header';
-import Hero from './components/Hero';
-import DetectionForm from './components/DetectionForm';
-import History from './components/History';
-import ClerkAuth from './components/ClerkAuth';
-import AdminDashboard from './components/AdminDashboard';
-import UserDashboard from './components/UserDashboard';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load heavy components
+const Hero = lazy(() => import('./components/Hero'));
+const DetectionForm = lazy(() => import('./components/DetectionForm'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const UserDashboard = lazy(() => import('./components/UserDashboard'));
+const History = lazy(() => import('./components/History'));
+const ClerkAuth = lazy(() => import('./components/ClerkAuth'));
+
+// Loading fallback
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="animate-spin text-slate-400" size={48} />
+  </div>
+);
 
 function AppContent() {
   const [isDark, setIsDark] = useState(false);
@@ -87,28 +97,32 @@ function AppContent() {
           onShowAuth={() => setShowAuthModal(true)}
         />
         
-        <Routes>
-          <Route path="/" element={
-            <>
-              <Hero />
-              <DetectionForm isAuthenticated={isSignedIn} onShowAuth={() => setShowAuthModal(true)} />
-            </>
-          } />
-          <Route path="/admin" element={
-            isSignedIn && isAdmin ? <AdminDashboard /> : <Navigate to="/" />
-          } />
-          <Route path="/dashboard" element={
-            isSignedIn ? <UserDashboard /> : <Navigate to="/" />
-          } />
-          <Route path="/history" element={
-            isSignedIn && isAdmin ? <History /> : <Navigate to="/" />
-          } />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={
+              <>
+                <Hero />
+                <DetectionForm isAuthenticated={isSignedIn} onShowAuth={() => setShowAuthModal(true)} />
+              </>
+            } />
+            <Route path="/admin" element={
+              isSignedIn && isAdmin ? <AdminDashboard /> : <Navigate to="/" />
+            } />
+            <Route path="/dashboard" element={
+              isSignedIn ? <UserDashboard /> : <Navigate to="/" />
+            } />
+            <Route path="/history" element={
+              isSignedIn && isAdmin ? <History /> : <Navigate to="/" />
+            } />
+          </Routes>
+        </Suspense>
 
-        <ClerkAuth 
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-        />
+        <Suspense fallback={null}>
+          <ClerkAuth 
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+          />
+        </Suspense>
       </div>
     </div>
   );

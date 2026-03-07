@@ -11,6 +11,20 @@
       content="Nocap AI - Advanced misinformation detection system powered by artificial intelligence. Combat fake news with real-time credibility analysis."
     />
     <title>Nocap AI - Misinformation Detection System</title>
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://clerk.accounts.dev" crossorigin>
+    <link rel="dns-prefetch" href="https://clerk.accounts.dev">
+    
+    <!-- Preload critical assets -->
+    <link rel="preload" as="image" href="%PUBLIC_URL%/favicon.svg">
+    
+    <style>
+      /* Critical CSS for initial render */
+      #root{min-height:100vh;background:#fff}
+      body{margin:0;font-family:system-ui,-apple-system,sans-serif}
+      .dark #root{background:#000}
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

@@ -90,13 +90,47 @@ function analyzeDomain(url) {
   }
 }
 
-// Detection route (public)
-router.post('/analyze', async (req, res) => {
-  const { text, sourceUrl, userId } = req.body;
+// Optional auth middleware - doesn't fail if no token
+const optionalAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.substring(7);
+      const { verifyToken } = require('@clerk/backend');
+      const verified = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY
+      });
+      
+      // Get user from database
+      const { data: user } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_id', verified.sub)
+        .single();
+      
+      if (user) {
+        req.user = user;
+      }
+    } catch (error) {
+      console.log('Optional auth failed:', error.message);
+    }
+  }
+  next();
+};
+
+// Detection route (public with optional auth)
+router.post('/analyze', optionalAuth, async (req, res) => {
+  const { text, sourceUrl } = req.body;
 
   if (!text) {
     return res.status(400).json({ error: 'Please provide content to analyze' });
   }
+
+  // Get userId from authenticated user or use 'anonymous'
+  const userId = req.user ? req.user.clerk_id : 'anonymous';
+  
+  console.log('📝 Analyzing for user:', userId);
 
   try {
     // Call AI service
@@ -295,14 +329,40 @@ router.get('/all-analyses', protect, async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data: analyses, error: analysesError } = await supabase
       .from('analyses')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
 
-    if (error) throw error;
-    res.json(data || []);
+    if (analysesError) throw analysesError;
+
+    // Get all unique user IDs
+    const userIds = [...new Set(analyses.map(a => a.user_id).filter(id => id !== 'anonymous'))];
+    
+    // Fetch user data
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('clerk_id, email')
+      .in('clerk_id', userIds);
+
+    if (usersError) console.error('Error fetching users:', usersError);
+
+    // Create a map of user_id to email
+    const userMap = {};
+    if (users) {
+      users.forEach(u => {
+        userMap[u.clerk_id] = u.email;
+      });
+    }
+
+    // Add username to each analysis
+    const analysesWithUsers = analyses.map(a => ({
+      ...a,
+      username: a.user_id === 'anonymous' ? 'Anonymous' : (userMap[a.user_id] || 'Unknown User')
+    }));
+
+    res.json(analysesWithUsers);
   } catch (error) {
     console.error('Fetch all analyses error:', error);
     res.status(500).json({ error: 'Failed to fetch analyses' });
@@ -391,18 +451,5 @@ router.get('/user/:userId', protect, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user analyses' });
   }
 });
-application.delete("/api/detection/:id", async(req, res)=>{
-  try{
-    const{id}=req.params;
-    await db.query(
 
-      "DELETE FROM analyses WHERE id = $1",
-      [id]
-    );
-    res.json({message:"Analysis delete successfully"});
-  }catch(error){
-    console.error("Delete error:", error);
-    res.status(500).json({error:"Failed to delete analysis"});
-  }
-});
 module.exports = { router };

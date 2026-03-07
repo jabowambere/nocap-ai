@@ -8,12 +8,12 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
   
   const isAdmin = user?.publicMetadata?.role === 'admin';
   return (
-    <header className="bg-white/95 dark:bg-neutral-950 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-500">
+    <header className="bg-white/95 dark:bg-neutral-950 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3 cursor-pointer animate-in fade-in slide-in-from-left-8 duration-500 delay-200 hover:scale-105 transition-transform duration-200" onClick={() => navigate('/')}>
+          <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform duration-200" onClick={() => navigate('/')}>
             <div className="relative">
-              <img src="/favicon.svg" alt="Nocap AI Logo" className={`w-12 h-12 hover:shadow-xl transition-all duration-300 hover:rotate-3 ${isDark ? 'brightness-0 invert' : 'brightness-0'}`} />
+              <img src="/favicon.svg" alt="Nocap AI Logo" loading="eager" width="48" height="48" className={`w-12 h-12 hover:shadow-xl transition-all duration-300 hover:rotate-3 ${isDark ? 'brightness-0 invert' : 'brightness-0'}`} />
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-black dark:from-slate-300 dark:to-white bg-clip-text text-transparent animate-in fade-in slide-in-from-left-4 duration-300 delay-400">Nocap AI</h1>
@@ -26,7 +26,7 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
             <nav className="flex gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-600">
               <button
                 onClick={() => navigate('/admin')}
-                className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 hover:scale-105 ${
                   currentPath === '/admin'
                     ? 'bg-gradient-to-r from-slate-700 to-black text-white shadow-lg animate-pulse'
                     : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:shadow-md'
@@ -41,7 +41,7 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
             <nav className="flex gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-600">
               <button
                 onClick={() => navigate('/dashboard')}
-                className={`px-4 py-2 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-sm sm:text-base font-semibold transition-all duration-300 hover:scale-105 ${
                   currentPath === '/dashboard'
                     ? 'bg-gradient-to-r from-slate-700 to-black text-white shadow-lg animate-pulse'
                     : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:shadow-md'
@@ -53,9 +53,9 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
           )}
         </div>
         
-        <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-500 delay-300">
+        <div className="flex items-center gap-5 sm:gap-4 animate-in fade-in slide-in-from-right-8 duration-500 delay-300">
           {isSignedIn ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-5 sm:gap-4">
               <UserButton 
                 appearance={{
                   elements: {

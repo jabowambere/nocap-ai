@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2 } from 'lucide-react';
+import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2, User } from 'lucide-react';
 
 const AdminDashboard = () => {
   // normalize backend URL and remove trailing slashes
@@ -28,6 +28,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   const [filterVerdict, setFilterVerdict] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userAnalyses, setUserAnalyses] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     if (getToken) {
@@ -40,21 +41,29 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
     try {
       const token = await getToken();
       
-      console.log('Fetching admin data...');
+      console.log('🔍 Fetching admin data from:', API_URL);
+      console.log('🔑 Token available:', !!token);
       
       // Fetch all analyses
-      const analysesRes = await fetch(joinUrl(API_URL, '/api/detection/all-analyses'), {
+      const analysesUrl = joinUrl(API_URL, '/api/detection/all-analyses');
+      console.log('📊 Fetching analyses from:', analysesUrl);
+      
+      const analysesRes = await fetch(analysesUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      console.log('📊 Analyses response status:', analysesRes.status);
+      
       if (!analysesRes.ok) {
-        console.error('Analyses fetch failed:', analysesRes.status);
+        const errorText = await analysesRes.text();
+        console.error('❌ Analyses fetch failed:', analysesRes.status, errorText);
         setLoading(false);
         return;
       }
       
       const analyses = await analysesRes.json();
-      console.log('Analyses:', analyses);
+      console.log('✅ Analyses fetched:', analyses.length, 'items');
+      console.log('📋 Sample analysis:', analyses[0]);
       
       setAllAnalyses(analyses);
 
@@ -98,7 +107,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         verdict: a.verdict,
         score: a.credibility_score,
         date: new Date(a.created_at).toLocaleString(),
-
+        username: a.username || 'Anonymous'
       })));
 
       setLoading(false);
@@ -109,19 +118,19 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   };
 
   const StatCard = ({ icon: Icon, label, value, color, trend }) => (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center`}>
-          <Icon className="text-white" size={24} />
+    <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${color} flex items-center justify-center`}>
+          <Icon className="text-white" size={20} />
         </div>
         {trend && (
-          <span className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
+          <span className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
             +{trend}%
           </span>
         )}
       </div>
-      <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-1">{value}</p>
-      <p className="text-sm text-slate-600 dark:text-slate-400">{label}</p>
+      <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-1">{value}</p>
+      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">{label}</p>
     </div>
   );
 
@@ -187,27 +196,28 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
     }
   };
 
-  const deleteAnalysis = async (analysisId) =>{
-      const confirmDelete = window.confirm("Are you sure you want to delete this analysis?");
-      if(!confirmDelete)return;
-      try{
-        const token = await getToken();
-        const response = await fetch(`${API_URL}/api/detection/${analysisId}`,{
-          method: "DELETE",
-          headers:{
-            Authorization: `Bearer ${token}`
-          }
-        });
-        if (!response.ok){
-          console.error("Failed to delete analysis");
-          return;
+  const deleteAnalysis = async (analysisId) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(joinUrl(API_URL, `/api/detection/history/${analysisId}`), {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-        setAllAnalyses(prev => prev.filter(a => a.id !== analysisId));
-        setRecentAnalyses(prev => prev.filter(a => a.id !== analysisId));
-      }catch(error){
-        console.error("Delete failed:", error);
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to delete: ${error.error || 'Unknown error'}`);
+        return;
       }
+      setAllAnalyses(prev => prev.filter(a => a.id !== analysisId));
+      setRecentAnalyses(prev => prev.filter(a => a.id !== analysisId));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert('Failed to delete analysis');
     }
+  }
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center">
@@ -217,20 +227,20 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black py-8 px-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-black py-4 sm:py-8 px-3 sm:px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+        <div className="mb-6 sm:mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-1 sm:mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
             Welcome back, {user?.firstName || 'Admin'}
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <div onClick={() => { setShowModal('all'); setFilterVerdict('all'); setSearchTerm(''); }} className="cursor-pointer">
             <StatCard
               icon={FileText}
@@ -270,12 +280,12 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         </div>
 
         {/* Chart Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Accuracy Chart */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-left-8 delay-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Detection Overview</h2>
-              <BarChart3 className="text-slate-400" size={24} />
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-left-8 delay-200">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Detection Overview</h2>
+              <BarChart3 className="text-slate-400" size={20} />
             </div>
             <div className="space-y-4">
               <div>
@@ -324,9 +334,9 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-right-8 delay-300">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">Quick Stats</h2>
-            <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-right-8 delay-300">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-6">Quick Stats</h2>
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
                 <div className="flex items-center gap-3">
                   <Activity className="text-blue-500" size={20} />
@@ -357,8 +367,8 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         </div>
 
         {/* Recent Analyses */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-8 delay-400">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">Recent Analyses</h2>
+        <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-8 delay-400">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-6">Recent Analyses</h2>
           {recentAnalyses.length === 0 ? (
             <p className="text-center text-slate-500 dark:text-slate-400 py-8">No analyses yet</p>
           ) : (
@@ -366,20 +376,34 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
             {recentAnalyses.map((analysis, idx) => (
               <div 
                 key={analysis.id}
-                className={`flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer animate-in fade-in slide-in-from-left-4 delay-${500 + idx * 100}`}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer gap-3 sm:gap-4"
               >
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
                   {getVerdictIcon(analysis.verdict)}
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{analysis.title}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{analysis.date}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm sm:text-base text-slate-900 dark:text-slate-100 truncate">{analysis.title}</p>
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                      <span className="truncate">{analysis.date}</span>
+                      {analysis.username && analysis.username !== 'Anonymous' && (
+                        <>
+                          <span>•</span>
+                          <span className="text-xs">By: {analysis.username}</span>
+                        </>
+                      )}
+                      {(!analysis.username || analysis.username === 'Anonymous') && (
+                        <>
+                          <span>•</span>
+                          <span className="text-xs italic">Anonymous</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className={`text-2xl font-bold ${getScoreColor(analysis.score)}`}>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                  <span className={`text-xl sm:text-2xl font-bold ${getScoreColor(analysis.score)}`}>
                     {analysis.score}%
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                     analysis.verdict === 'LIKELY REAL' 
                       ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                       : analysis.verdict === 'LIKELY FAKE'
@@ -388,8 +412,9 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                   }`}>
                     {analysis.verdict}
                   </span>
-                  <button onClick={()=>deleteAnalysis(analysis.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
-                    <Trash2 size={18}/>
+                  <button onClick={() => setDeleteConfirm(analysis.id)} className="p-1.5 sm:p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
+                    <Trash2 size={16} className="sm:hidden" />
+                    <Trash2 size={18} className="hidden sm:block" />
                   </button>
                 </div>
               </div>
@@ -474,8 +499,17 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                           <div className="flex items-start gap-4 flex-1">
                             {getVerdictIcon(analysis.verdict)}
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                                {analysis.text.substring(0, 100)}...
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                  {analysis.text.substring(0, 100)}...
+                                </p>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                                {analysis.username && analysis.username !== 'Anonymous' ? (
+                                  <span>By: <span className="font-medium">{analysis.username}</span></span>
+                                ) : (
+                                  <span className="italic">Anonymous</span>
+                                )}
                               </p>
                               {analysis.source_url && (
                                 <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">{analysis.source_url}</p>
@@ -498,6 +532,9 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                             }`}>
                               {analysis.verdict}
                             </span>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(analysis.id); }} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
+                              <Trash2 size={16}/>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -567,11 +604,47 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                         }`}>
                           {analysis.verdict}
                         </span>
+                        <button onClick={() => setDeleteConfirm(analysis.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
+                          <Trash2 size={16}/>
+                        </button>
                       </div>
                     </div>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertCircle className="text-red-600 dark:text-red-400" size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center mb-2">
+                Delete Analysis?
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 text-center mb-6">
+                This action cannot be undone. The analysis will be permanently removed from the database.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteAnalysis(deleteConfirm)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold transition-all shadow-lg hover:shadow-xl"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
