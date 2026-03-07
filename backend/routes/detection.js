@@ -1,22 +1,22 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
 const supabase = require('../config/supabase');
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const router = express.Router();
 
-// initialize the OpenAI client lazily; if the key is absent the constructor
-// will throw, so only create the object when we actually need it later.
-let openai = null;
-if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
+// Initialize Gemini client
+let genAI = null;
+if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key-here') {
   try {
-    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log('✅ Gemini AI initialized');
   } catch (err) {
-    console.error('⚠️ Failed to initialize OpenAI client:', err.message);
-    openai = null;
+    console.error('⚠️ Failed to initialize Gemini client:', err.message);
+    genAI = null;
   }
 } else {
-  console.log('⚠️ OPENAI_API_KEY not set; skipping OpenAI client initialization');
+  console.log('⚠️ GEMINI_API_KEY not set; skipping Gemini client initialization');
 }
 
 // Domain reputation lists
@@ -181,40 +181,40 @@ router.post('/analyze', optionalAuth, async (req, res) => {
     finalScore = Math.max(0, Math.min(1, finalScore));
     const scorePercent = Math.round(finalScore * 100);
     
-    // ALWAYS use OpenAI for deeper analysis
-    console.log('🤖 Calling OpenAI for comprehensive analysis...');
+    // ALWAYS use Gemini for deeper analysis
+    console.log('🤖 Calling Gemini AI for comprehensive analysis...');
     
-    if (openai) {
+    if (genAI) {
       try {
-        console.log('🔑 OpenAI client ready, analyzing content...');
+        console.log('🔑 Gemini client ready, analyzing content...');
         
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert fact-checker. Analyze news content for credibility. Return ONLY a JSON object with: {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100 (use full range: 0 for completely false, 100 for completely true), "reasoning": "brief explanation"}. Be decisive - use extreme scores (0-20 or 80-100) when evidence is clear.'
-            },
-            {
-              role: 'user',
-              content: `Analyze this news for credibility:\n\nContent: ${text}${sourceUrl ? `\n\nSource URL: ${sourceUrl}` : ''}\n\nInitial AI score: ${scorePercent}%`
-            }
-          ],
-          temperature: 0.2,
-          max_tokens: 250
-        });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const prompt = `You are an expert fact-checker. Analyze this news content for credibility.
+
+Content: ${text}${sourceUrl ? `\nSource URL: ${sourceUrl}` : ''}\nInitial AI score: ${scorePercent}%
+
+Return ONLY a JSON object with:
+{"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100 (use full range: 0 for completely false, 100 for completely true), "reasoning": "brief explanation"}
+
+Be decisive - use extreme scores (0-20 or 80-100) when evidence is clear.`;
         
-        console.log('✅ OpenAI response:', completion.choices[0].message.content);
+        const result = await model.generateContent(prompt);
+        const response = result.response.text();
         
-        const aiAnalysis = JSON.parse(completion.choices[0].message.content);
+        console.log('✅ Gemini response:', response);
+        
+        // Extract JSON from response (Gemini sometimes adds markdown)
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        const aiAnalysis = JSON.parse(jsonMatch ? jsonMatch[0] : response);
+        
         verdict = aiAnalysis.verdict;
         finalScore = aiAnalysis.confidence / 100;
         analysis = aiAnalysis.reasoning;
-        indicators.push('✨ Enhanced with OpenAI GPT-3.5 deep analysis');
+        indicators.push('✨ Enhanced with Google Gemini AI deep analysis');
         
-        console.log('📊 Final OpenAI verdict:', verdict, 'Score:', aiAnalysis.confidence + '%');
-      } catch (openaiError) {
-        console.error('❌ OpenAI analysis failed:', openaiError.message);
+        console.log('📊 Final Gemini verdict:', verdict, 'Score:', aiAnalysis.confidence + '%');
+      } catch (geminiError) {
+        console.error('❌ Gemini analysis failed:', geminiError.message);
         // Fall back to basic scoring
         if (scorePercent >= 70) {
           verdict = 'LIKELY REAL';
@@ -228,8 +228,8 @@ router.post('/analyze', optionalAuth, async (req, res) => {
         }
       }
     } else {
-      console.log('⚠️ OpenAI not available, using basic scoring');
-      // Basic verdict without OpenAI
+      console.log('⚠️ Gemini not available, using basic scoring');
+      // Basic verdict without Gemini
       if (scorePercent >= 70) {
         verdict = 'LIKELY REAL';
         analysis = 'This content appears credible with factual language and trusted sources.';
