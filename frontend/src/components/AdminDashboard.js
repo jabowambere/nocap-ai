@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2, User } from 'lucide-react';
+import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2 } from 'lucide-react';
 
 const AdminDashboard = () => {
   // normalize backend URL and remove trailing slashes
