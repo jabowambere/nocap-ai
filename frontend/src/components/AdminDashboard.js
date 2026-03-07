@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X } from 'lucide-react';
+import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2 } from 'lucide-react';
 
 const AdminDashboard = () => {
   // normalize backend URL and remove trailing slashes
@@ -97,7 +97,8 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         title: a.text.substring(0, 50) + '...',
         verdict: a.verdict,
         score: a.credibility_score,
-        date: new Date(a.created_at).toLocaleString()
+        date: new Date(a.created_at).toLocaleString(),
+
       })));
 
       setLoading(false);
@@ -186,6 +187,27 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
     }
   };
 
+  const deleteAnalysis = async (analysisId) =>{
+      const confirmDelete = window.confirm("Are you sure you want to delete this analysis?");
+      if(!confirmDelete)return;
+      try{
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/api/detection/${analysisId}`,{
+          method: "DELETE",
+          headers:{
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (!response.ok){
+          console.error("Failed to delete analysis");
+          return;
+        }
+        setAllAnalyses(prev => prev.filter(a => a.id !== analysisId));
+        setRecentAnalyses(prev => prev.filter(a => a.id !== analysisId));
+      }catch(error){
+        console.error("Delete failed:", error);
+      }
+    }
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-black flex items-center justify-center">
@@ -366,6 +388,9 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                   }`}>
                     {analysis.verdict}
                   </span>
+                  <button onClick={()=>deleteAnalysis(analysis.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition">
+                    <Trash2 size={18}/>
+                  </button>
                 </div>
               </div>
             ))}

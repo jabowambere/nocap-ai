@@ -166,7 +166,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
     
     return sorted;
   };
-
+ 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-black py-8 px-4">
       <div className="max-w-6xl mx-auto">

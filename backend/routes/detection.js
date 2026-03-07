@@ -391,5 +391,18 @@ router.get('/user/:userId', protect, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user analyses' });
   }
 });
+application.delete("/api/detection/:id", async(req, res)=>{
+  try{
+    const{id}=req.params;
+    await db.query(
 
+      "DELETE FROM analyses WHERE id = $1",
+      [id]
+    );
+    res.json({message:"Analysis delete successfully"});
+  }catch(error){
+    console.error("Delete error:", error);
+    res.status(500).json({error:"Failed to delete analysis"});
+  }
+});
 module.exports = { router };
