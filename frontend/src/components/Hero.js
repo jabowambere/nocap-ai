@@ -1,50 +1,113 @@
 import React from 'react';
-import { Search, Shield, Zap } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const Hero = () => {
-  return (
-    <section className="bg-white dark:bg-black text-black dark:text-white relative overflow-hidden animate-in fade-in duration-700">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="w-full h-full" style={{backgroundImage: "url('data:image/svg+xml,%3Csvg width=%2760%27 height=%2760%27 viewBox=%270 0 60 60%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cg fill=%27none%27 fill-rule=%27evenodd%27%3E%3Cg fill=%27%23ffffff%27 fill-opacity=%270.05%27%3E%3Ccircle cx=%2730%27 cy=%2730%27 r=%272%27/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"}}></div>
+  const scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const DotLogo = () => (
+    <div className="mx-auto mb-8 w-14 h-14 rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-neutral-950/60 backdrop-blur-sm shadow-[0_16px_50px_rgba(15,23,42,0.12)] flex items-center justify-center">
+      <div className="grid grid-cols-2 gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-900 dark:bg-slate-50" />
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-400" />
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-400" />
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-900 dark:bg-slate-50" />
       </div>
-      
-      <div className="relative max-w-6xl mx-auto px-4 py-24 text-center">
-        <div className="inline-flex items-center gap-2 bg-black/10 dark:bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-8 text-sm border border-black/20 dark:border-white/20 animate-in fade-in slide-in-from-top-8 duration-500 delay-200 hover:scale-105 transition-transform">
-          <Search className="text-gray-700 dark:text-gray-300 animate-pulse" size={16} />
-          <span className="font-medium text-gray-900 dark:text-gray-100">AI-Powered Truth Detection</span>
+    </div>
+  );
+
+  const FloatingPoster = ({ className, src, alt, caption, tone = 'light' }) => (
+    <div
+      className={[
+        'pointer-events-none select-none absolute hidden md:block',
+        'rounded-3xl border shadow-[0_30px_90px_rgba(15,23,42,0.18)]',
+        tone === 'light'
+          ? 'border-slate-200/80 bg-white/90'
+          : 'border-slate-800/70 bg-neutral-950/60',
+        'backdrop-blur-sm overflow-hidden',
+        className,
+      ].join(' ')}
+    >
+      <img src={src} alt={alt} className="w-full h-full object-cover" draggable="false" />
+      {caption ? (
+        <div className="absolute bottom-0 inset-x-0 px-4 py-3 bg-gradient-to-t from-white/95 via-white/60 to-transparent dark:from-neutral-950/90 dark:via-neutral-950/40">
+          <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{caption}</p>
         </div>
-        
-        <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-400">
-          Verify News
-          <br />
-          <span className="text-black dark:text-white animate-in fade-in slide-in-from-left-8 duration-500 delay-800">
-            Instantly
-          </span>
-        </h1>
-        
-        <p className="text-xl text-gray-900 dark:text-gray-100 max-w-2xl mx-auto mb-12 leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-500 delay-1000">
-          Advanced AI analyzes news content for credibility, bias, and misinformation patterns in real-time.
-        </p>
-        
-        <div className="flex flex-wrap justify-center gap-8 mt-16">
-          <div className="flex items-center gap-3 text-gray-800 dark:text-gray-200 animate-in fade-in slide-in-from-left-8 duration-500 delay-1200 hover:scale-110 transition-transform cursor-pointer">
-            <div className="w-10 h-10 bg-gray-800/20 dark:bg-gray-500/20 rounded-full flex items-center justify-center hover:bg-gray-800/30 dark:hover:bg-gray-500/30 transition-colors">
-              <Zap className="text-gray-700 dark:text-gray-300 animate-bounce" size={20} />
+      ) : null}
+    </div>
+  );
+
+  return (
+    <section className="bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 relative overflow-hidden">
+      <div className="relative pt-10 pb-8 sm:pt-14 sm:pb-10">
+        <div className="relative border-y border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-neutral-950/50 backdrop-blur-sm shadow-[0_30px_120px_rgba(15,23,42,0.14)] overflow-hidden">
+          <div
+            className="absolute inset-0 opacity-[0.55] dark:opacity-[0.25]"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230F172A' fill-opacity='0.06'%3E%3Ccircle cx='32' cy='32' r='1.8'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+            }}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(1200px_circle_at_50%_20%,rgba(59,130,246,0.10),transparent_55%)]" />
+
+          <FloatingPoster
+            src="/landing/poster-1.svg"
+            alt="Poster 1"
+            caption="Check the truth behind the news"
+            className="left-[5%] lg:left-[10%] top-10 w-56 h-40 rotate-[-10deg] float-slow"
+          />
+          <FloatingPoster
+            src="/landing/poster-4.png"
+            alt="Poster 2"
+            caption="Product highlight card"
+            className="right-[5%] lg:right-[10%] top-8 w-64 h-48 rotate-[10deg] float-medium"
+          />
+          <FloatingPoster
+            src="/landing/poster-2.png"
+            alt="Poster 3"
+            caption="Dashboard preview"
+            className="left-[5%] lg:left-[10%] bottom-10 w-50 h-48 rotate-[6deg] float-fast"
+          />
+          <FloatingPoster
+            src="/landing/poster-3.svg"
+            alt="Poster 4"
+            caption="Don't guess, Verify."
+            className="right-[5%] lg:right-[10%] bottom-10 w-60 h-44 rotate-[-6deg] float-slow"
+          />
+
+          <div className="relative px-6 py-16 sm:px-12 sm:py-20 text-center">
+            <DotLogo />
+
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight leading-[1.06]">
+              Think, verify, and trust
+              <br />
+              <span className="text-slate-400 dark:text-slate-400 font-medium">all in one place</span>
+            </h1>
+
+            <p className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+              Nocap AI helps you check credibility, spot bias, and reduce misinformation—fast.
+            </p>
+
+            <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
+              <button
+                onClick={() => scrollToId('demo')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 hover:bg-black-700 text-white font-semibold shadow-[0_16px_50px_rgba(37,99,235,0.28)] transition-colors"
+              >
+                Get free demo <ArrowRight size={18} />
+              </button>
+              <button
+                onClick={() => scrollToId('features')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-neutral-950/40 backdrop-blur-sm text-slate-800 dark:text-slate-100 font-semibold hover:bg-white/80 dark:hover:bg-neutral-950/55 transition-colors"
+              >
+                View features
+              </button>
             </div>
-            <span className="font-medium">Instant Analysis</span>
-          </div>
-          <div className="flex items-center gap-3 text-gray-800 dark:text-gray-200 animate-in fade-in slide-in-from-bottom-8 duration-500 delay-1400 hover:scale-110 transition-transform cursor-pointer">
-            <div className="w-10 h-10 bg-gray-900/20 dark:bg-gray-600/20 rounded-full flex items-center justify-center hover:bg-gray-900/30 dark:hover:bg-gray-600/30 transition-colors">
-              <Shield className="text-gray-700 dark:text-gray-300 animate-pulse" size={20} />
-            </div>
-            <span className="font-medium">Source Verification</span>
-          </div>
-          <div className="flex items-center gap-3 text-gray-800 dark:text-gray-200 animate-in fade-in slide-in-from-right-8 duration-500 delay-1600 hover:scale-110 transition-transform cursor-pointer">
-            <div className="w-10 h-10 bg-black/20 dark:bg-gray-700/20 rounded-full flex items-center justify-center hover:bg-black/30 dark:hover:bg-gray-700/30 transition-colors">
-              <Search className="text-gray-700 dark:text-gray-300 animate-spin" size={20} />
-            </div>
-            <span className="font-medium">Pattern Detection</span>
+
+            <p className="mt-10 text-xs text-slate-500 dark:text-slate-400">
+              Tip: replace the posters with your images in <span className="font-medium">frontend/public/landing/</span>
+            </p>
           </div>
         </div>
       </div>

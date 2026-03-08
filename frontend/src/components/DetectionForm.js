@@ -66,12 +66,12 @@ const joinUrl = (base, path) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div id="demo" className="max-w-6xl mx-auto px-4 py-16 scroll-mt-28 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Main Analysis Form */}
         <div className="lg:col-span-2 animate-in fade-in slide-in-from-left-8 duration-500 delay-200">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-3xl transition-all duration-300 hover:scale-[1.01]">
-            <div className="bg-gradient-to-r from-slate-700 to-black p-6 animate-in fade-in slide-in-from-top-4 duration-400 delay-300">
+            <div className="bg-gradient-to-r from-gray-900 to-black p-6 animate-in fade-in slide-in-from-top-4 duration-400 delay-300">
               <h2 className="text-2xl font-bold text-white mb-2 animate-in fade-in slide-in-from-left-4 duration-300 delay-400">Analyze News Content</h2>
               <p className="text-slate-200 animate-in fade-in slide-in-from-left-4 duration-300 delay-500">Paste any news article or claim to verify its credibility</p>
             </div>
@@ -110,7 +110,7 @@ const joinUrl = (base, path) => {
               <button
                 type="submit"
                 disabled={loading || !content.trim()}
-                className="w-full py-4 px-6 bg-gradient-to-r from-slate-700 to-black hover:from-slate-800 hover:to-gray-900 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] disabled:transform-none animate-in fade-in slide-in-from-bottom-4 delay-900 hover:animate-pulse"
+                className="w-full py-4 px-6 bg-gradient-to-r from-gray-900 to-black hover:from-slate-800 hover:to-gray-900 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] disabled:transform-none animate-in fade-in slide-in-from-bottom-4 delay-900 hover:animate-pulse"
               >
                 {loading ? (
                   <>
@@ -141,7 +141,7 @@ const joinUrl = (base, path) => {
         {/* Recommended Sources Sidebar */}
         <div className="lg:col-span-1 animate-in fade-in slide-in-from-right-8 duration-500 delay-400">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden sticky top-24 hover:shadow-2xl transition-all duration-300 hover:scale-[1.01]">
-            <div className="bg-gradient-to-r from-slate-700 to-black p-6 animate-in fade-in slide-in-from-top-4 duration-400 delay-500">
+            <div className="bg-gradient-to-r from-gray-900 to-black p-6 animate-in fade-in slide-in-from-top-4 duration-400 delay-500">
               <h3 className="text-xl font-bold text-white mb-2 animate-in fade-in slide-in-from-left-4 duration-300 delay-600">Trusted Sources</h3>
               <p className="text-slate-200 text-sm animate-in fade-in slide-in-from-left-4 duration-300 delay-700">Verify with reliable news outlets</p>
             </div>

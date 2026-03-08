@@ -4,6 +4,7 @@ import { useUser } from '@clerk/clerk-react';
 import './App.css';
 import Header from './components/Header';
 import { Loader2 } from 'lucide-react';
+import LandingSections from './components/LandingSections';
 
 // Lazy load heavy components
 const Hero = lazy(() => import('./components/Hero'));
@@ -102,6 +103,7 @@ function AppContent() {
             <Route path="/" element={
               <>
                 <Hero />
+                <LandingSections />
                 <DetectionForm isAuthenticated={isSignedIn} onShowAuth={() => setShowAuthModal(true)} />
               </>
             } />
