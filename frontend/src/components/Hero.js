@@ -41,7 +41,7 @@ const Hero = () => {
 
   return (
     <section className="bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 relative overflow-hidden">
-      <div className="relative pt-10 pb-8 sm:pt-14 sm:pb-10">
+      <div className="relative pb-8 sm:pb-10">
         <div className="relative border-y border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-neutral-950/50 backdrop-blur-sm shadow-[0_30px_120px_rgba(15,23,42,0.14)] overflow-hidden">
           <div
             className="absolute inset-0 opacity-[0.55] dark:opacity-[0.25]"

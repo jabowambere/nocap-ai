@@ -124,14 +124,6 @@ const joinUrl = (base, path) => {
                   </>
                 )}
               </button>
-              
-              {!isAuthenticated && (
-                <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-2 animate-in fade-in duration-300 delay-1000">
-                  <button onClick={onShowAuth} className="text-gray-600 hover:text-gray-700 underline transition-colors duration-200 hover:scale-105 transform">
-                    Sign in as admin
-                  </button> to access dashboard and history
-                </p>
-              )}
             </form>
           </div>
 
