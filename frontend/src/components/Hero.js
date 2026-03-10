@@ -104,10 +104,6 @@ const Hero = () => {
                 View features
               </button>
             </div>
-
-            <p className="mt-10 text-xs text-slate-500 dark:text-slate-400">
-              Tip: replace the posters with your images in <span className="font-medium">frontend/public/landing/</span>
-            </p>
           </div>
         </div>
       </div>

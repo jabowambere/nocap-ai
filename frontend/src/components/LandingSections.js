@@ -64,8 +64,7 @@ const LandingSections = () => {
               For teams and individuals
             </h2>
             <p className="mt-4 text-slate-600 dark:text-slate-300 leading-relaxed">
-              Use Nocap AI for newsroom workflows, classrooms, community moderation, or personal fact checking.
-            </p>
+             Built for journalists, researchers, students, and everyday readers who care about the truth.            </p>
           </div>
 
           <div id="pricing">
@@ -74,8 +73,7 @@ const LandingSections = () => {
               Start free, scale later
             </h2>
             <p className="mt-4 text-slate-600 dark:text-slate-300 leading-relaxed">
-              Replace this placeholder with your real pricing cards when you're ready.
-            </p>
+              Check news credibility instantly. Upgrade only when you need more power.            </p>
           </div>
 
           <div id="resources">
@@ -84,8 +82,7 @@ const LandingSections = () => {
               Learn how to verify better
             </h2>
             <p className="mt-4 text-slate-600 dark:text-slate-300 leading-relaxed">
-              Add your own guides, blog posts, or docs here and link to them from the top navigation.
-            </p>
+              Explore guides, tutorials, and research to become better at spotting misinformation.            </p>
           </div>
         </div>
       </section>
