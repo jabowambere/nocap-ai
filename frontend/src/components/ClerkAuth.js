@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { SignIn } from '@clerk/clerk-react';
+import { SignIn, useUser } from '@clerk/clerk-react';
 import { X } from 'lucide-react';
+import axios from 'axios';
 
 const ClerkAuth = ({ isOpen, onClose }) => {
   const [isDark, setIsDark] = useState(false);
+  const { user, isSignedIn } = useUser();
 
   useEffect(() => {
     const checkTheme = () => {
@@ -16,6 +18,29 @@ const ClerkAuth = ({ isOpen, onClose }) => {
     
     return () => observer.disconnect();
   }, []);
+
+  // Auto-sync user to Supabase after successful sign-in
+  useEffect(() => {
+    const syncUser = async () => {
+      if (isSignedIn && user) {
+        try {
+          const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+          await axios.post(`${API_URL}/api/sync/sync-user`, {
+            clerkId: user.id,
+            email: user.primaryEmailAddress?.emailAddress,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName
+          });
+          console.log('✅ User synced to Supabase');
+        } catch (error) {
+          console.error('❌ Failed to sync user:', error);
+        }
+      }
+    };
+
+    syncUser();
+  }, [isSignedIn, user]);
 
   if (!isOpen) return null;
 
@@ -41,7 +66,8 @@ const ClerkAuth = ({ isOpen, onClose }) => {
       socialButtonsPlacement: 'bottom',
       socialButtonsVariant: 'blockButton',
       showOptionalFields: false,
-      logoImageUrl: '/favicon.svg'
+      logoImageUrl: '/favicon.svg',
+      applicationName: 'Nocap-AI'
     },
     variables: {
       colorPrimary: '#1e293b',
@@ -64,7 +90,7 @@ const ClerkAuth = ({ isOpen, onClose }) => {
         <SignIn 
           appearance={appearance}
           redirectUrl="/"
-          routing="hash"
+          routing="virtual"
         />
       </div>
     </div>
