@@ -13,6 +13,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const UserDashboard = lazy(() => import('./components/UserDashboard'));
 const History = lazy(() => import('./components/History'));
 const ClerkAuth = lazy(() => import('./components/ClerkAuth'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -116,6 +117,7 @@ function AppContent() {
             <Route path="/history" element={
               isSignedIn && isAdmin ? <History /> : <Navigate to="/" />
             } />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
           </Routes>
         </Suspense>
 
@@ -125,6 +127,18 @@ function AppContent() {
             onClose={() => setShowAuthModal(false)}
           />
         </Suspense>
+
+        <footer className="border-t border-slate-200/70 dark:border-slate-800 py-6 mt-10">
+          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500 dark:text-slate-400">
+            <span>© 2025 NoCap AI. All rights reserved.</span>
+            <button
+              onClick={() => navigate('/privacy')}
+              className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors underline underline-offset-2"
+            >
+              Privacy Policy
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );

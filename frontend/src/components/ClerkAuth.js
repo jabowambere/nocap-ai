@@ -11,11 +11,11 @@ const ClerkAuth = ({ isOpen, onClose }) => {
     const checkTheme = () => {
       setIsDark(document.documentElement.classList.contains('dark'));
     };
-    
+
     checkTheme();
     const observer = new MutationObserver(checkTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    
+
     return () => observer.disconnect();
   }, []);
 
@@ -86,7 +86,7 @@ const ClerkAuth = ({ isOpen, onClose }) => {
         >
           <X size={20} />
         </button>
-        
+
         <SignIn 
           appearance={appearance}
           redirectUrl="/"
