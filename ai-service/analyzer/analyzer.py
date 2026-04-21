@@ -92,7 +92,7 @@ FACTUAL_CLAIM_TRIGGERS=(
     "everyone agrees"
 )
 def check_potential_fact_contradition(text:str):
-    text_lower=text_lower()
+    text_lower=text.lower()
     hits=sum(
         1 for phrase in FACTUAL_CLAIM_TRIGGERS
         if phrase in text_lower
