@@ -180,6 +180,20 @@ router.post('/analyze', optionalAuth, async (req, res) => {
     // Clamp score between 0 and 1
     finalScore = Math.max(0, Math.min(1, finalScore));
     const scorePercent = Math.round(finalScore * 100);
+
+    // Extract indicators from AI service signals FIRST (always)
+    if (aiResult.signals) {
+      if (aiResult.signals.all_caps_ratio > 0.1) indicators.push('Contains excessive capitalization');
+      if (aiResult.signals.exclamation_count > 3) indicators.push('Contains excessive punctuation');
+      if (aiResult.signals.question_count > 3) indicators.push('Contains many questions');
+      if (aiResult.signals.url_count > 3) indicators.push('Contains multiple links');
+      if (aiResult.signals.sensational_words > 0) indicators.push(`Contains ${aiResult.signals.sensational_words} sensationalist phrases`);
+      if (aiResult.signals.credible_words > 0) indicators.push(`Contains ${aiResult.signals.credible_words} credible research terms`);
+      if (aiResult.signals.emotional_words > 2) indicators.push('Uses excessive emotional language');
+      if (aiResult.signals.has_citations) indicators.push('Contains academic citations');
+      if (aiResult.signals.neutral_tone) indicators.push('Uses neutral, informational tone');
+      if (aiResult.signals.trusted_domain_count > 0) indicators.push(`References ${aiResult.signals.trusted_domain_count} trusted domain(s)`);
+    }
     
     // ALWAYS use Gemini for deeper analysis
     console.log('🤖 Calling Gemini AI for comprehensive analysis...');
@@ -208,7 +222,11 @@ Be decisive - use extreme scores (0-20 or 80-100) when evidence is clear.`;
         const aiAnalysis = JSON.parse(jsonMatch ? jsonMatch[0] : response);
         
         verdict = aiAnalysis.verdict;
-        finalScore = aiAnalysis.confidence / 100;
+        // Blend: 50% Gemini + 30% heuristic AI service + 20% domain
+        const geminiScore = aiAnalysis.confidence / 100;
+        const domainBoost = sources.length > 0 ? (finalScore - aiResult.credibility_score) : 0;
+        finalScore = (geminiScore * 0.5) + (aiResult.credibility_score * 0.3) + (Math.max(0, Math.min(1, aiResult.credibility_score + domainBoost)) * 0.2);
+        finalScore = Math.max(0, Math.min(1, finalScore));
         analysis = aiAnalysis.reasoning;
         indicators.push('✨ Enhanced with Google Gemini AI deep analysis');
         
@@ -242,22 +260,8 @@ Be decisive - use extreme scores (0-20 or 80-100) when evidence is clear.`;
       }
     }
     
-    // Recalculate final score percent after OpenAI
+    // Recalculate final score percent after Gemini
     const finalScorePercent = Math.round(finalScore * 100);
-
-    // Extract indicators from AI signals
-    if (aiResult.signals) {
-      if (aiResult.signals.all_caps_ratio > 0.1) indicators.push('Contains excessive capitalization');
-      if (aiResult.signals.exclamation_count > 3) indicators.push('Contains excessive punctuation');
-      if (aiResult.signals.question_count > 3) indicators.push('Contains many questions');
-      if (aiResult.signals.url_count > 3) indicators.push('Contains multiple links');
-      if (aiResult.signals.sensational_words > 0) indicators.push(`Contains ${aiResult.signals.sensational_words} sensationalist phrases`);
-      if (aiResult.signals.credible_words > 0) indicators.push(`Contains ${aiResult.signals.credible_words} credible research terms`);
-      if (aiResult.signals.emotional_words > 2) indicators.push('Uses excessive emotional language');
-      if (aiResult.signals.has_citations) indicators.push('Contains academic citations');
-      if (aiResult.signals.neutral_tone) indicators.push('Uses neutral, informational tone');
-      if (aiResult.signals.trusted_domain_count > 0) indicators.push(`References ${aiResult.signals.trusted_domain_count} trusted domain(s)`);
-    }
 
     // Save to database BEFORE sending response
     console.log('Saving to database:', { userId, score: finalScorePercent, verdict });
