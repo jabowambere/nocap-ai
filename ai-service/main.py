@@ -6,6 +6,10 @@ from analyzer.credibility import heuristic_score
 from analyzer.analyzer import analyze_text
 
 app = FastAPI(title="Nocap AI Service")
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
     
 class TextRequest(BaseModel):
     text: str

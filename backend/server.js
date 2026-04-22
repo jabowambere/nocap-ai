@@ -54,4 +54,16 @@ app.listen(PORT, () => {
   console.log(`✓ API available at http://localhost:${PORT}`);
   console.log(`✓ Health check: http://localhost:${PORT}/health`);
   console.log(`✓ Auth endpoints available at http://localhost:${PORT}/api/auth\n`);
+
+  // Ping AI service every 14 minutes to prevent Render sleep
+  if (process.env.NODE_ENV === 'production' && process.env.AI_SERVICE_URL) {
+    setInterval(async () => {
+      try {
+        await fetch(`${process.env.AI_SERVICE_URL}/health`);
+        console.log('✅ AI service ping successful');
+      } catch {
+        console.log('⚠️ AI service ping failed');
+      }
+    }, 14 * 60 * 1000);
+  }
 });
