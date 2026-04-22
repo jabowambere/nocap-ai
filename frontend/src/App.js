@@ -131,6 +131,7 @@ function AppContent() {
         <footer className="border-t border-slate-200/70 dark:border-slate-800 py-6 mt-10">
           <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500 dark:text-slate-400">
             <span>© 2025 NoCap AI. All rights reserved.</span>
+            <span>Designed & Developed by <span className="font-medium text-slate-700 dark:text-slate-300">Junior JABO GABIRO</span></span>
             <button
               onClick={() => navigate('/privacy')}
               className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors underline underline-offset-2"

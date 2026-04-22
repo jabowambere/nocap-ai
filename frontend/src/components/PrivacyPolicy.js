@@ -24,7 +24,6 @@ const PrivacyPolicy = () => {
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-semibold mb-2">Privacy Policy</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-10">Last updated: June 2025</p>
 
         <div className="space-y-10 text-slate-600 dark:text-slate-300 leading-relaxed">
 

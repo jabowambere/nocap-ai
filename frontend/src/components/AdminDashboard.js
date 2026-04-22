@@ -281,56 +281,60 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
 
         {/* Chart Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {/* Accuracy Chart */}
+          {/* Pie Chart */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-left-8 delay-200">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Detection Overview</h2>
               <BarChart3 className="text-slate-400" size={20} />
             </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Real News</span>
-                  <span className="text-sm font-semibold text-emerald-600">
-                    {stats.totalAnalyses > 0 ? Math.round((stats.realNews / stats.totalAnalyses) * 100) : 0}%
-                  </span>
+            {stats.totalAnalyses === 0 ? (
+              <p className="text-center text-slate-500 dark:text-slate-400 py-12">No data yet</p>
+            ) : (() => {
+              const total = stats.totalAnalyses;
+              const slices = [
+                { label: 'Real News', value: stats.realNews, color: '#10b981' },
+                { label: 'Fake News', value: stats.fakeNews, color: '#ef4444' },
+                { label: 'Uncertain', value: stats.uncertain, color: '#f59e0b' },
+              ];
+              const cx = 100, cy = 100, r = 80;
+              let cumulative = 0;
+              const paths = slices.map(slice => {
+                const pct = slice.value / total;
+                const startAngle = cumulative * 2 * Math.PI - Math.PI / 2;
+                cumulative += pct;
+                const endAngle = cumulative * 2 * Math.PI - Math.PI / 2;
+                const x1 = cx + r * Math.cos(startAngle);
+                const y1 = cy + r * Math.sin(startAngle);
+                const x2 = cx + r * Math.cos(endAngle);
+                const y2 = cy + r * Math.sin(endAngle);
+                const largeArc = pct > 0.5 ? 1 : 0;
+                return { ...slice, pct, d: pct === 0 ? '' : `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z` };
+              });
+              return (
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <svg viewBox="0 0 200 200" className="w-44 h-44 shrink-0">
+                    {paths.map((s, i) => s.d && <path key={i} d={s.d} fill={s.color} stroke="white" strokeWidth="2" />)}
+                    <circle cx={cx} cy={cy} r="44" fill="white" className="dark:fill-slate-900" />
+                    <text x={cx} y={cy - 8} textAnchor="middle" className="text-xs" fill="currentColor" fontSize="14" fontWeight="bold">{total}</text>
+                    <text x={cx} y={cy + 10} textAnchor="middle" fill="#94a3b8" fontSize="9">total</text>
+                  </svg>
+                  <div className="flex flex-col gap-3 w-full">
+                    {slices.map((s, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                          <span className="text-sm text-slate-600 dark:text-slate-400">{s.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{s.value}</span>
+                          <span className="text-xs text-slate-500 w-10 text-right">{Math.round((s.value / total) * 100)}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${stats.totalAnalyses > 0 ? (stats.realNews / stats.totalAnalyses) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Fake News</span>
-                  <span className="text-sm font-semibold text-red-600">
-                    {stats.totalAnalyses > 0 ? Math.round((stats.fakeNews / stats.totalAnalyses) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${stats.totalAnalyses > 0 ? (stats.fakeNews / stats.totalAnalyses) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Uncertain</span>
-                  <span className="text-sm font-semibold text-yellow-600">
-                    {stats.totalAnalyses > 0 ? Math.round((stats.uncertain / stats.totalAnalyses) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${stats.totalAnalyses > 0 ? (stats.uncertain / stats.totalAnalyses) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Quick Stats */}
