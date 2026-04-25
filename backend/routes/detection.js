@@ -118,18 +118,29 @@ router.post('/analyze', optionalAuth, async (req, res) => {
   try {
     const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
-    // Run AI service and Fact Check API in parallel
-    const [aiResponse, factCheckResults] = await Promise.all([
-      fetch(`${AI_SERVICE_URL}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      }),
+    // Retry AI service up to 2 times (handles Render cold start)
+    let aiResponse;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        aiResponse = await fetch(`${AI_SERVICE_URL}/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(15000)
+        });
+        if (aiResponse.ok) break;
+      } catch (err) {
+        console.log(`⚠️ AI service attempt ${attempt} failed:`, err.message);
+        if (attempt === 2) throw new Error('AI service unavailable');
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+
+    // Run fact check in parallel with JSON parsing
+    const [aiResult, factCheckResults] = await Promise.all([
+      aiResponse.json(),
       checkFactCheckAPI(text)
     ]);
-
-    if (!aiResponse.ok) throw new Error('AI service unavailable');
-    const aiResult = await aiResponse.json();
 
     let finalScore = aiResult.credibility_score;
     const indicators = [];

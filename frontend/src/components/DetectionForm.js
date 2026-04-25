@@ -59,7 +59,7 @@ const joinUrl = (base, path) => {
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError('Error analyzing content. Make sure backend is running on port 3001.');
+      setError('Error analyzing content. Please try again or check your connection.');
     } finally {
       setLoading(false);
     }
