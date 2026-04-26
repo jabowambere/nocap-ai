@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2 } from 'lucide-react';
+import { BarChart3, Users, FileText, TrendingUp, Activity, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Search, ArrowUpDown, X, Trash2, MessageSquare } from 'lucide-react';
 
 const AdminDashboard = () => {
   // normalize backend URL and remove trailing slashes
@@ -29,10 +29,13 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   const [selectedUser, setSelectedUser] = useState(null);
   const [userAnalyses, setUserAnalyses] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [deleteFeedbackConfirm, setDeleteFeedbackConfirm] = useState(null);
 
   useEffect(() => {
     if (getToken) {
       fetchAdminData();
+      fetchFeedbacks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -193,6 +196,25 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
       setSelectedUser({ id: userId, email: userEmail });
     } catch (error) {
       console.error('Failed to fetch user analyses:', error);
+    }
+  };
+
+  const fetchFeedbacks = async () => {
+    try {
+      const res = await fetch(joinUrl(API_URL, '/api/feedback/all'));
+      if (res.ok) setFeedbacks(await res.json());
+    } catch (err) {
+      console.error('Failed to fetch feedbacks:', err);
+    }
+  };
+
+  const deleteFeedback = async (id) => {
+    try {
+      await fetch(joinUrl(API_URL, `/api/feedback/${id}`), { method: 'DELETE' });
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+      setDeleteFeedbackConfirm(null);
+    } catch (err) {
+      console.error('Failed to delete feedback:', err);
     }
   };
 
@@ -426,6 +448,42 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
           </div>
           )}
         </div>
+
+        {/* Feedbacks Section */}
+        <div className="mt-6 sm:mt-8 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="text-slate-400" size={20} />
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">User Feedback & Comments</h2>
+            </div>
+            <span className="text-sm text-slate-500 dark:text-slate-400">{feedbacks.length} total</span>
+          </div>
+          {feedbacks.length === 0 ? (
+            <p className="text-center text-slate-500 dark:text-slate-400 py-8">No feedback yet</p>
+          ) : (
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              {feedbacks.map(fb => (
+                <div key={fb.id} className="flex items-start justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold">
+                        {fb.name?.[0]?.toUpperCase() || 'A'}
+                      </div>
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{fb.name || 'Anonymous'}</span>
+                      {fb.rating && <span className="text-xs text-yellow-500">{'★'.repeat(fb.rating)}{'☆'.repeat(5 - fb.rating)}</span>}
+                      <span className="text-xs text-slate-400 ml-auto">{new Date(fb.created_at).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{fb.comment}</p>
+                    {fb.user_id && <p className="text-xs text-slate-400 mt-1">User ID: {fb.user_id}</p>}
+                  </div>
+                  <button onClick={() => setDeleteFeedbackConfirm(fb.id)} className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition shrink-0">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Modal */}
@@ -648,6 +706,25 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                 >
                   Delete
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Feedback Confirmation Modal */}
+      {deleteFeedbackConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteFeedbackConfirm(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertCircle className="text-red-600 dark:text-red-400" size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center mb-2">Delete Feedback?</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-center mb-6">This action cannot be undone.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteFeedbackConfirm(null)} className="flex-1 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition-all">Cancel</button>
+                <button onClick={() => deleteFeedback(deleteFeedbackConfirm)} className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold transition-all shadow-lg">Delete</button>
               </div>
             </div>
           </div>

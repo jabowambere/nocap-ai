@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,19 +7,20 @@
 @layer base {
   html {
     font-size: 14px;
+    font-family: 'Josefin Sans', sans-serif;
   }
-  
+
   body {
     @apply text-sm;
-  }
-  
-  /* Optimize font rendering */
-  * {
+    font-family: 'Josefin Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
-  /* Reduce layout shift */
+
+  * {
+    font-family: 'Josefin Sans', sans-serif;
+  }
+
   img {
     content-visibility: auto;
   }
