@@ -11,9 +11,12 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'https://nocap-ai.netlify.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
