@@ -125,7 +125,7 @@ router.post('/analyze', optionalAuth, async (req, res) => {
         aiResponse = await fetch(`${AI_SERVICE_URL}/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, source_url: sourceUrl || null }),
           signal: AbortSignal.timeout(15000)
         });
         if (aiResponse.ok) break;
@@ -199,6 +199,14 @@ router.post('/analyze', optionalAuth, async (req, res) => {
       if (aiResult.signals.trusted_domain_count > 0) indicators.push(`References ${aiResult.signals.trusted_domain_count} trusted domain(s)`);
     }
 
+    // 4. Apply genocide-specific flags from AI service
+    if (aiResult.genocide_check?.is_relevant) {
+      aiResult.genocide_check.flags.forEach(flag => indicators.push(flag));
+      if (aiResult.genocide_check.denial_patterns_found?.length > 0) {
+        sources.push(`⚠️ Genocide denial patterns detected: ${aiResult.genocide_check.denial_patterns_found.join(', ')}`);
+      }
+    }
+
     finalScore = Math.max(0, Math.min(1, finalScore));
     const scorePercent = Math.round(finalScore * 100);
 
@@ -221,15 +229,19 @@ router.post('/analyze', optionalAuth, async (req, res) => {
           ? `\n\nFact-check results from verified publishers:\n${factCheckResults.map(fc => `- ${fc.publisher} rated "${fc.text}" as: ${fc.rating}`).join('\n')}`
           : '\n\nNo existing fact-check records found for this content.';
 
-        const prompt = `You are an expert fact-checker. Analyze this news content for credibility.
+        const genocideContext = aiResult.genocide_check?.is_relevant
+          ? `\n\n⚠️ IMPORTANT: This content is about the 1994 Genocide Against the Tutsi in Rwanda. Apply strict scrutiny:\n- Denial patterns found: ${aiResult.genocide_check.denial_patterns_found?.length > 0 ? aiResult.genocide_check.denial_patterns_found.join(', ') : 'none'}\n- The genocide is a legally established fact (ICTR, UN). Any content minimizing, denying, or distorting it should be rated LIKELY FAKE regardless of neutral tone.\n- "Double genocide" theory, calling it a "civil war", blaming the RPF/RPA for mass killings of civilians, or attributing atrocities to Tutsi soldiers to deflect from the genocide are established denial tactics debunked by ICTR.\n- Claims that RPF/RPA gathered people in schools/markets to kill them is a known false narrative used to create a false equivalence with the genocide.\n- Neutral or academic tone does NOT make denial content credible. Judge by facts, not tone.`
+          : '';
 
-Content: ${text}${sourceUrl ? `\nSource URL: ${sourceUrl}` : ''}${domainContext}${factCheckContext}
+        const prompt = `You are an expert fact-checker specializing in African history and genocide studies. Analyze this content for credibility.
+
+Content: ${text}${sourceUrl ? `\nSource URL: ${sourceUrl}` : ''}${domainContext}${factCheckContext}${genocideContext}
 Initial heuristic score: ${scorePercent}%
 
 Return ONLY a JSON object:
 {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100, "reasoning": "brief explanation", "domain_assessment": "assessment of source domain credibility or null"}
 
-Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear.`;
+Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear. For genocide-related content, neutral tone does NOT mean credible — check facts against established historical record.`;
 
         const result = await model.generateContent(prompt);
         const response = result.response.text();
@@ -240,8 +252,17 @@ Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-1
 
         verdict = aiAnalysis.verdict;
         const geminiScore = aiAnalysis.confidence / 100;
-        // Blend: 50% Gemini + 30% heuristic + 20% domain/factcheck adjusted
-        finalScore = (geminiScore * 0.5) + (aiResult.credibility_score * 0.3) + (finalScore * 0.2);
+        // Hard cap only when BOTH denial source AND denial content patterns found
+        const hasDenialContent = aiResult.genocide_check?.denial_patterns_found?.length > 0;
+        const hasDenialSource = aiResult.genocide_check?.flags?.some(f => f.includes('history of genocide denial'));
+        const isDenial = aiResult.genocide_check?.is_relevant && hasDenialContent;
+
+        if (isDenial) {
+          finalScore = Math.min(finalScore, 0.35);
+          verdict = 'LIKELY FAKE';
+        } else {
+          finalScore = (geminiScore * 0.5) + (aiResult.credibility_score * 0.3) + (finalScore * 0.2);
+        }
         finalScore = Math.max(0, Math.min(1, finalScore));
         analysis = aiAnalysis.reasoning;
 
