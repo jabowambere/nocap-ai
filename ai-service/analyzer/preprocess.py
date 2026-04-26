@@ -6,6 +6,8 @@ def clean_text(text: str) -> str:
     return text
 
 def basic_signals(text: str) -> dict:
+    # Remove GOAT before calculating caps ratio so it doesn't penalize it
+    text_for_caps = text.replace('GOAT', '').replace('goat', '')
     text_lower = text.lower()
     
     # Sensationalist keywords
@@ -37,7 +39,7 @@ def basic_signals(text: str) -> dict:
     
     return {
         "length": len(text),
-        "all_caps_ratio": sum(1 for c in text if c.isupper()) / max(len(text), 1),
+        "all_caps_ratio": sum(1 for c in text_for_caps if c.isupper()) / max(len(text_for_caps), 1),
         "exclamation_count": text.count("!"),
         "question_count": text.count("?"),
         "url_count": len(re.findall(r'https?://', text)),
