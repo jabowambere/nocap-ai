@@ -5,6 +5,7 @@ import './App.css';
 import Header from './components/Header';
 import { Loader2 } from 'lucide-react';
 import LandingSections from './components/LandingSections';
+import FeedbackSection from './components/FeedbackSection';
 
 // Lazy load heavy components
 const Hero = lazy(() => import('./components/Hero'));
@@ -28,15 +29,14 @@ function AppContent() {
   const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const isAdmin = user?.publicMetadata?.role === 'admin';
-  
+
   console.log('User:', user);
   console.log('Is Admin:', isAdmin);
   console.log('Public Metadata:', user?.publicMetadata);
 
   useEffect(() => {
-    // Theme handling
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
@@ -44,7 +44,6 @@ function AppContent() {
     }
   }, [isDark]);
 
-  // Sync user to Supabase when they sign in
   useEffect(() => {
     if (isSignedIn && user) {
       const syncUser = async () => {
@@ -52,9 +51,7 @@ function AppContent() {
           const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
           const response = await fetch(`${API_URL}/api/sync/sync-user`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               clerkId: user.id,
               email: user.primaryEmailAddress?.emailAddress,
@@ -63,11 +60,8 @@ function AppContent() {
               lastName: user.lastName
             })
           });
-          
           const result = await response.json();
           console.log('User sync result:', result);
-          
-          // If user is admin in Supabase, update Clerk metadata
           if (result.role === 'admin' && !user.publicMetadata?.role) {
             console.log('User is admin in Supabase, should update Clerk metadata manually');
           }
@@ -75,10 +69,9 @@ function AppContent() {
           console.error('Failed to sync user:', error);
         }
       };
-      
+
       syncUser();
-      
-      // Redirect to appropriate dashboard after sign in
+
       if (location.pathname === '/') {
         if (isAdmin) {
           navigate('/admin');
@@ -92,14 +85,14 @@ function AppContent() {
   return (
     <div className={isDark ? 'dark' : 'light'}>
       <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-slate-50 transition-colors duration-300">
-        <Header 
-          isDark={isDark} 
-          setIsDark={setIsDark} 
+        <Header
+          isDark={isDark}
+          setIsDark={setIsDark}
           currentPath={location.pathname}
           navigate={navigate}
           onShowAuth={() => setShowAuthModal(true)}
         />
-        
+
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={
@@ -107,6 +100,7 @@ function AppContent() {
                 <Hero />
                 <LandingSections />
                 <DetectionForm isAuthenticated={isSignedIn} onShowAuth={() => setShowAuthModal(true)} />
+                <FeedbackSection />
               </>
             } />
             <Route path="/admin" element={
@@ -123,7 +117,7 @@ function AppContent() {
         </Suspense>
 
         <Suspense fallback={null}>
-          <ClerkAuth 
+          <ClerkAuth
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
           />

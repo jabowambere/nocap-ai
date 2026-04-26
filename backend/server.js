@@ -26,6 +26,7 @@ const { router: detectionRoutes } = require('./routes/detection');
 const webhookRoutes = require('./routes/webhook');
 const syncRoutes = require('./routes/sync');
 const userRoutes = require('./routes/users');
+const feedbackRoutes = require('./routes/feedback');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -33,6 +34,7 @@ app.use('/api/detection', detectionRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Root route
 app.get('/', (req, res) => {
