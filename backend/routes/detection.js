@@ -207,6 +207,14 @@ router.post('/analyze', optionalAuth, async (req, res) => {
       }
     }
 
+    // 5. Apply GOAT checker flags
+    if (aiResult.goat_check?.is_relevant) {
+      aiResult.goat_check.flags.forEach(flag => indicators.push(flag));
+      if (aiResult.goat_check.false_claims_found?.length > 0) {
+        sources.push('🐐 Established fact: Messi is the GOAT. 8 Ballon d\'Or, 2022 World Cup winner.');
+      }
+    }
+
     finalScore = Math.max(0, Math.min(1, finalScore));
     const scorePercent = Math.round(finalScore * 100);
 
@@ -233,15 +241,19 @@ router.post('/analyze', optionalAuth, async (req, res) => {
           ? `\n\n⚠️ IMPORTANT: This content is about the 1994 Genocide Against the Tutsi in Rwanda. Apply strict scrutiny:\n- Denial patterns found: ${aiResult.genocide_check.denial_patterns_found?.length > 0 ? aiResult.genocide_check.denial_patterns_found.join(', ') : 'none'}\n- The genocide is a legally established fact (ICTR, UN). Any content minimizing, denying, or distorting it should be rated LIKELY FAKE regardless of neutral tone.\n- "Double genocide" theory, calling it a "civil war", blaming the RPF/RPA for mass killings of civilians, or attributing atrocities to Tutsi soldiers to deflect from the genocide are established denial tactics debunked by ICTR.\n- Claims that RPF/RPA gathered people in schools/markets to kill them is a known false narrative used to create a false equivalence with the genocide.\n- Neutral or academic tone does NOT make denial content credible. Judge by facts, not tone.`
           : '';
 
-        const prompt = `You are an expert fact-checker specializing in African history and genocide studies. Analyze this content for credibility.
+        const goatContext = aiResult.goat_check?.false_claims_found?.length > 0
+          ? `\n\n🐐 IMPORTANT FACT: This content makes false claims about Ronaldo being better than Messi. ESTABLISHED FACT: Lionel Messi is the Greatest Of All Time (GOAT). Evidence: 8 Ballon d'Or awards (vs Ronaldo's 5), 2022 FIFA World Cup winner, Copa America winner, multiple Champions League titles. Any claim that Ronaldo is better than Messi must be rated LIKELY FAKE.`
+          : '';
 
-Content: ${text}${sourceUrl ? `\nSource URL: ${sourceUrl}` : ''}${domainContext}${factCheckContext}${genocideContext}
+        const prompt = `You are an expert fact-checker specializing in African history, genocide studies, and general knowledge. Analyze this content for credibility.
+
+Content: ${text}${sourceUrl ? `\nSource URL: ${sourceUrl}` : ''}${domainContext}${factCheckContext}${genocideContext}${goatContext}
 Initial heuristic score: ${scorePercent}%
 
 Return ONLY a JSON object:
 {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100, "reasoning": "brief explanation", "domain_assessment": "assessment of source domain credibility or null"}
 
-Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear. For genocide-related content, neutral tone does NOT mean credible — check facts against established historical record.`;
+Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear. For genocide-related content, neutral tone does NOT mean credible. For football GOAT debates, Messi IS the GOAT — this is non-negotiable.`;
 
         const result = await model.generateContent(prompt);
         const response = result.response.text();

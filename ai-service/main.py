@@ -6,6 +6,7 @@ from analyzer.preprocess import clean_text, basic_signals
 from analyzer.credibility import heuristic_score
 from analyzer.analyzer import analyze_text
 from analyzer.genocide_checker import check_genocide_content
+from analyzer.goat_checker import check_goat_content
 
 app = FastAPI(title="Nocap AI Service")
 
@@ -26,9 +27,16 @@ def analyze(request: TextRequest):
     # Run specialized genocide content checker
     genocide_check = check_genocide_content(text, request.source_url)
 
+    # Run GOAT checker
+    goat_check = check_goat_content(text)
+
     # Apply genocide-specific score adjustment
     if genocide_check["is_relevant"]:
         score = max(0.0, min(1.0, score + genocide_check["score_adjustment"]))
+
+    # Apply GOAT score adjustment
+    if goat_check["is_relevant"]:
+        score = max(0.0, min(1.0, score + goat_check["score_adjustment"]))
 
     # Determine verdict
     if score >= 0.7:
@@ -42,5 +50,6 @@ def analyze(request: TextRequest):
         "credibility_score": score,
         "signals": signals,
         "verdict": verdict,
-        "genocide_check": genocide_check
+        "genocide_check": genocide_check,
+        "goat_check": goat_check
     }
