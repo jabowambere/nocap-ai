@@ -68,13 +68,17 @@ app.listen(PORT, () => {
 
   // Ping AI service every 14 minutes to prevent Render sleep
   if (process.env.NODE_ENV === 'production' && process.env.AI_SERVICE_URL) {
-    setInterval(async () => {
+    const pingAI = async () => {
       try {
         await fetch(`${process.env.AI_SERVICE_URL}/health`);
         console.log('✅ AI service ping successful');
       } catch {
         console.log('⚠️ AI service ping failed');
       }
-    }, 14 * 60 * 1000);
+    };
+    // Ping immediately on startup to wake it up
+    pingAI();
+    // Then keep pinging every 14 minutes
+    setInterval(pingAI, 14 * 60 * 1000);
   }
 });

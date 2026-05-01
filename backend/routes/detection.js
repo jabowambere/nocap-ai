@@ -118,21 +118,21 @@ router.post('/analyze', optionalAuth, async (req, res) => {
   try {
     const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
-    // Retry AI service up to 2 times (handles Render cold start)
+    // Retry AI service up to 3 times (handles Render cold start ~30-60s)
     let aiResponse;
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         aiResponse = await fetch(`${AI_SERVICE_URL}/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, source_url: sourceUrl || null }),
-          signal: AbortSignal.timeout(15000)
+          signal: AbortSignal.timeout(30000) // 30s per attempt
         });
         if (aiResponse.ok) break;
       } catch (err) {
         console.log(`⚠️ AI service attempt ${attempt} failed:`, err.message);
-        if (attempt === 2) throw new Error('AI service unavailable');
-        await new Promise(r => setTimeout(r, 3000));
+        if (attempt === 3) throw new Error('AI service unavailable');
+        await new Promise(r => setTimeout(r, 5000)); // wait 5s before retry
       }
     }
 
