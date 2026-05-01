@@ -1,0 +1,20 @@
+name: nocap-backend
+services:
+  - name: nocap-backend
+    type: web
+    instance_type: free
+    regions:
+      - was
+    git:
+      repository: github.com/YOUR_GITHUB_USERNAME/nocapai
+      branch: main
+      build_command: cd backend && npm install
+      run_command: cd backend && node server.js
+    ports:
+      - port: 3001
+        protocol: http
+    env:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
