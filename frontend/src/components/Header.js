@@ -1,10 +1,11 @@
-import React from 'react';
-import { Moon, Sun, LogIn, LogOut, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Moon, Sun, LogIn, LogOut, ArrowRight, Menu, X } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/clerk-react';
 
 const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
   const { user, isSignedIn } = useUser();
   const { signOut } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const isAdmin = user?.publicMetadata?.role === 'admin';
   const isLanding = currentPath === '/';
@@ -83,6 +84,7 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
         </div>
         
         <div className="flex items-center gap-5 sm:gap-4 animate-in fade-in slide-in-from-right-8 duration-500 delay-300">
+          {/* Desktop Layout */}
           {isSignedIn ? (
             <div className="flex items-center gap-5 sm:gap-4">
               <UserButton 
@@ -101,22 +103,40 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            /* Mobile: Show menu button, Desktop: Show buttons directly */
+            <>
+              <div className="hidden sm:flex items-center gap-2">
+                <button
+                  onClick={onShowAuth}
+                  className="flex items-center gap-2 px-4 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  <LogIn size={16} />
+                  <span className="text-sm font-medium">Sign in</span>
+                </button>
+                <button
+                  onClick={() => {
+                    goTo('#demo');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-900 text-white rounded-xl font-semibold shadow-[0_16px_40px_rgba(37,99,235,0.25)] transition-colors"
+                >
+                  <span className="text-sm">Get demo</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+
+              {/* Mobile Menu Button */}
               <button
-                onClick={onShowAuth}
-                className="flex items-center gap-2 px-4 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="sm:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-300"
+                aria-label="Toggle menu"
               >
-                <LogIn size={16} />
-                <span className="text-sm font-medium">Sign in</span>
+                {mobileMenuOpen ? (
+                  <X size={24} className="text-slate-700 dark:text-slate-200" />
+                ) : (
+                  <Menu size={24} className="text-slate-700 dark:text-slate-200" />
+                )}
               </button>
-              <button
-                onClick={() => goTo('#demo')}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-900 text-white rounded-xl font-semibold shadow-[0_16px_40px_rgba(37,99,235,0.25)] transition-colors"
-              >
-                <span className="text-sm">Get demo</span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
+            </>
           )}
           
           <button
@@ -132,6 +152,34 @@ const Header = ({ isDark, setIsDark, currentPath, navigate, onShowAuth }) => {
           </button>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {!isSignedIn && mobileMenuOpen && (
+        <div className="sm:hidden bg-white dark:bg-neutral-900 border-t border-slate-200/70 dark:border-slate-800 py-3 px-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                onShowAuth();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-300 font-medium"
+            >
+              <LogIn size={18} />
+              <span>Sign in</span>
+            </button>
+            <button
+              onClick={() => {
+                goTo('#demo');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-semibold shadow-lg transition-all duration-300 active:scale-95"
+            >
+              <span>Get demo</span>
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
