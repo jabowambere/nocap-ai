@@ -53,19 +53,21 @@ const joinUrl = (base, path) => {
         }),
       });
 
+      if (response.status === 429) {
+        const data = await response.json();
+        setLimitReached(true);
+        setError(data.message);
+        return;
+      }
+
       if (!response.ok) {
-        if (response.status === 429) {
-          const data = await response.json();
-          setLimitReached(true);
-          setError(data.message);
-          return;
-        }
         throw new Error('Failed to analyze content');
       }
 
       const data = await response.json();
       setResult(data);
     } catch (err) {
+      if (err.message?.includes('limit_reached') || limitReached) return;
       setError('Error analyzing content. Please try again or check your connection.');
     } finally {
       setLoading(false);
