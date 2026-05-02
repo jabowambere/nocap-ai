@@ -115,6 +115,47 @@ router.post('/analyze', optionalAuth, async (req, res) => {
   const userId = req.user ? req.user.clerk_id : 'anonymous';
   console.log('📝 Analyzing for user:', userId);
 
+  // --- IP-based rate limiting for anonymous users ---
+  if (!req.user) {
+    try {
+      const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+      console.log('🌐 Anonymous request from IP:', ip);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data: usage } = await supabase
+        .from('anonymous_usage')
+        .select('*')
+        .eq('ip_address', ip)
+        .gte('created_at', today.toISOString())
+        .single();
+
+      if (usage && usage.count >= 3) {
+        return res.status(429).json({
+          error: 'limit_reached',
+          message: 'You have used your 3 free analyses. Sign in for unlimited access.'
+        });
+      }
+
+      if (usage) {
+        await supabase
+          .from('anonymous_usage')
+          .update({ count: usage.count + 1, last_used: new Date().toISOString() })
+          .eq('id', usage.id);
+      } else {
+        await supabase
+          .from('anonymous_usage')
+          .insert({ ip_address: ip, count: 1 });
+      }
+
+      console.log(`📊 Anonymous usage for ${ip}: ${(usage?.count || 0) + 1}/3`);
+    } catch (rateLimitError) {
+      // If rate limit check fails (e.g. table missing), log and continue
+      console.error('⚠️ Rate limit check failed:', rateLimitError.message);
+    }
+  }
+
   try {
     const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
