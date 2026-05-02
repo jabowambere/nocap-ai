@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, X, Zap, Link, ExternalLink } from 'lucide-react';
+import { Loader2, X, Zap, Link, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 import ResultCard from './ResultCard';
 
@@ -146,7 +146,7 @@ const joinUrl = (base, path) => {
                   </>
                 ) : (
                   <>
-                    <Zap size={24} className="animate-bounce" />
+                    <ShieldCheck size={24} />
                     <span>Verify Content</span>
                   </>
                 )}
