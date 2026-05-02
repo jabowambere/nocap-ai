@@ -18,6 +18,7 @@ const joinUrl = (base, path) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [limitReached, setLimitReached] = useState(false);
 
   const recommendedSources = [
     { name: 'Reuters', url: 'https://reuters.com', category: 'News Agency' },
@@ -53,6 +54,12 @@ const joinUrl = (base, path) => {
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          const data = await response.json();
+          setLimitReached(true);
+          setError(data.message);
+          return;
+        }
         throw new Error('Failed to analyze content');
       }
 
@@ -100,7 +107,25 @@ const joinUrl = (base, path) => {
                 </div>
               </div>
 
-              {error && (
+              {limitReached && (
+                <div className="flex flex-col items-center gap-4 p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-center">
+                  <div className="w-12 h-12 rounded-full bg-slate-900 dark:bg-slate-50 flex items-center justify-center">
+                    <Zap className="text-white dark:text-slate-900" size={22} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-slate-50 text-lg">You've used your 3 free analyses</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Sign in for unlimited fact-checking — it's free</p>
+                  </div>
+                  <button
+                    onClick={onShowAuth}
+                    className="w-full py-3 px-6 bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 rounded-xl font-semibold hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors"
+                  >
+                    Sign in for unlimited access
+                  </button>
+                </div>
+              )}
+
+              {error && !limitReached && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200 animate-in fade-in slide-in-from-top-4 duration-300">
                   <X size={20} className="flex-shrink-0 mt-0.5 animate-pulse" />
                   <p className="text-sm">{error}</p>
@@ -109,7 +134,7 @@ const joinUrl = (base, path) => {
 
               <button
                 type="submit"
-                disabled={loading || !content.trim()}
+                disabled={loading || !content.trim() || limitReached}
                 className="w-full py-4 px-6 bg-gradient-to-r from-gray-900 to-black hover:from-slate-800 hover:to-gray-900 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] disabled:transform-none animate-in fade-in slide-in-from-bottom-4 delay-900 hover:animate-pulse"
               >
                 {loading ? (
