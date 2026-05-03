@@ -309,8 +309,6 @@ router.post('/analyze', optionalAuth, async (req, res) => {
     // 4. Gemini deep analysis with all context
     if (genAI) {
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
         const domainContext = sourceUrl ? (() => {
           try {
             const domain = new URL(sourceUrl).hostname.replace('www.', '').toLowerCase();
@@ -340,31 +338,61 @@ router.post('/analyze', optionalAuth, async (req, res) => {
 Content: ${text}${sourceUrl ? `\nSource URL: ${sourceUrl}` : ''}${domainContext}${factCheckContext}${genocideContext}${goatContext}
 Initial heuristic score: ${scorePercent}%
 
-Return ONLY a JSON object:
+        Return ONLY a JSON object:
 {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100, "reasoning": "brief explanation", "domain_assessment": "assessment of source domain credibility or null"}
 
 Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear. For genocide-related content, neutral tone does NOT mean credible. For football GOAT debates, Messi IS the GOAT — this is non-negotiable.`;
 
-        const result = await model.generateContent(prompt);
-        const response = result.response.text();
-        console.log('✅ Gemini response:', response);
+        const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+        let response = null;
+        let lastGeminiError = null;
+
+        for (const modelName of geminiModels) {
+          try {
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            response = result.response.text();
+            console.log(`✅ Gemini response from ${modelName}:`, response);
+            break;
+          } catch (modelError) {
+            lastGeminiError = modelError;
+            console.warn(`⚠️ Gemini model ${modelName} failed:`, modelError.message);
+          }
+        }
+
+        if (!response) {
+          throw lastGeminiError || new Error('No Gemini model responded successfully');
+        }
 
         const jsonMatch = response.match(/\{[\s\S]*\}/);
         const aiAnalysis = JSON.parse(jsonMatch ? jsonMatch[0] : response);
 
         verdict = aiAnalysis.verdict;
-        const geminiScore = aiAnalysis.confidence / 100;
+        const geminiConfidence = Math.max(0, Math.min(100, Number(aiAnalysis.confidence) || 0)) / 100;
+        const geminiCredibilityScore =
+          verdict === 'LIKELY FAKE'
+            ? (1 - geminiConfidence)
+            : verdict === 'LIKELY REAL'
+            ? geminiConfidence
+            : 0.5;
         // Hard cap only when BOTH denial source AND denial content patterns found
         const hasDenialContent = aiResult.genocide_check?.denial_patterns_found?.length > 0;
         const hasDenialSource = aiResult.genocide_check?.flags?.some(f => f.includes('history of genocide denial'));
         const isDenial = aiResult.genocide_check?.is_relevant && hasDenialContent;
 
         if (isDenial) {
-          finalScore = Math.min(finalScore, 0.35);
+          finalScore = Math.min(finalScore, 0.05);
           verdict = 'LIKELY FAKE';
         } else {
-          finalScore = (geminiScore * 0.5) + (aiResult.credibility_score * 0.3) + (finalScore * 0.2);
+          finalScore = (geminiCredibilityScore * 0.5) + (aiResult.credibility_score * 0.3) + (finalScore * 0.2);
         }
+
+        if (verdict === 'LIKELY FAKE') {
+          finalScore = Math.min(finalScore, 0.49);
+        } else if (verdict === 'LIKELY REAL') {
+          finalScore = Math.max(finalScore, 0.55);
+        }
+
         finalScore = Math.max(0, Math.min(1, finalScore));
         analysis = aiAnalysis.reasoning;
 
