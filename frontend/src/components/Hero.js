@@ -1,7 +1,64 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
 
+// ── Scramble hook ──────────────────────────────────────────────────────────────
+// This hook takes a target word and animates it from random characters → real word.
+// It returns:
+//   ref     → attach to the <span> that wraps the word
+//   scramble → call this to replay the animation (used on hover)
+const useScramble = (targetWord, { delay = 400, speed = 30, step = 0.35 } = {}) => {
+  const ref = useRef(null);
+  const intervalRef = useRef(null);
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+
+  const scramble = () => {
+    let iteration = 0;
+    clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
+      if (!ref.current) return;
+
+      // For each letter position:
+      //   - if it's already "locked" (index < iteration), show the real letter
+      //   - otherwise show a random character
+      ref.current.textContent = targetWord
+        .split('')
+        .map((letter, index) => {
+          if (index < Math.floor(iteration)) return letter;
+          return CHARS[Math.floor(Math.random() * CHARS.length)];
+        })
+        .join('');
+
+      iteration += step; // increase how many letters are "locked" each tick
+
+      if (iteration >= targetWord.length) {
+        clearInterval(intervalRef.current);
+        ref.current.textContent = targetWord; // ensure final word is clean
+      }
+    }, speed);
+  };
+
+  // Auto-play once on mount after `delay` ms
+  useEffect(() => {
+    const timer = setTimeout(scramble, delay);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  return { ref, scramble };
+};
+// ──────────────────────────────────────────────────────────────────────────────
+
 const Hero = () => {
+  // Attach the hook to the word "verify"
+  const { ref: verifyRef, scramble } = useScramble('verify', {
+    delay: 600,  // starts 600ms after the page loads (feels intentional, not instant)
+    speed: 30,   // ticks every 30ms → smooth but snappy
+    step: 0.35,  // each tick locks ~0.35 letters → full word locks in ~17 ticks
+  });
+
   const scrollToId = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -81,7 +138,23 @@ const Hero = () => {
             <DotLogo />
 
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tight leading-[1.06]">
-              Think, verify, and trust
+              Think,{' '}
+              {/*
+                The <span> below is where the magic happens.
+                - ref={verifyRef} → the hook writes random chars then the real word into this element
+                - onMouseEnter={scramble} → hovering re-triggers the animation
+                - font-mono → monospace font keeps character width stable during scramble
+                  (without this, the text jumps around as different-width chars appear)
+                - cursor-pointer → subtle hint that it's interactive
+              */}
+              <span
+                ref={verifyRef}
+                onMouseEnter={scramble}
+                className="font-mono cursor-pointer"
+              >
+                verify
+              </span>
+              , and trust
               <br />
               <span className="text-slate-400 dark:text-slate-400 font-medium">all in one place</span>
             </h1>
