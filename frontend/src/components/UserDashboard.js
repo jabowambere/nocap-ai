@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
-import { FileText, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Zap, Link, ExternalLink, Loader2, X, ArrowUpDown, Trash2 } from 'lucide-react';
+import { FileText, Clock, TrendingUp, CheckCircle, CheckCircle2, XCircle, AlertCircle, Search, Filter, Link, ExternalLink, Loader2, X, ArrowUpDown, Trash2 } from 'lucide-react';
 import ResultCard from './ResultCard';
 
 const UserDashboard = () => {
@@ -258,7 +258,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                     </>
                   ) : (
                     <>
-                      <Zap size={24} />
+                      <CheckCircle2 size={24} />
                       <span>Verify Content</span>
                     </>
                   )}

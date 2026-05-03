@@ -127,14 +127,29 @@ router.post('/analyze', optionalAuth, async (req, res) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const { data: usage } = await supabase
+      const { data: usageRows, error: usageError } = await supabase
         .from('anonymous_usage')
         .select('*')
         .eq('ip_address', ip)
         .gte('created_at', today.toISOString())
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (usage && usage.count >= 3) {
+      if (usageError) {
+        console.error('⚠️ Rate limit lookup failed:', usageError.message);
+        return res.status(503).json({
+          error: 'rate_limit_unavailable',
+          message: 'Unable to verify anonymous usage right now. Please try again shortly or sign in.'
+        });
+      }
+
+      const usage = usageRows?.[0] || null;
+      const usageCount = usage ? Number(usage.count || 0) : 0;
+
+      if ((usageRows?.length || 0) > 1) {
+        console.warn(`⚠️ Multiple anonymous_usage rows found for ${ip} today; using latest row id ${usage.id}`);
+      }
+
+      if (usageCount >= 3) {
         return res.status(429).json({
           error: 'limit_reached',
           message: 'You have used your 3 free analyses. Sign in for unlimited access.'
@@ -142,20 +157,39 @@ router.post('/analyze', optionalAuth, async (req, res) => {
       }
 
       if (usage) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('anonymous_usage')
-          .update({ count: usage.count + 1, last_used: new Date().toISOString() })
+          .update({ count: usageCount + 1, last_used: new Date().toISOString() })
           .eq('id', usage.id);
+
+        if (updateError) {
+          console.error('⚠️ Rate limit update failed:', updateError.message);
+          return res.status(503).json({
+            error: 'rate_limit_unavailable',
+            message: 'Unable to update anonymous usage right now. Please try again shortly or sign in.'
+          });
+        }
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('anonymous_usage')
           .insert({ ip_address: ip, count: 1 });
+
+        if (insertError) {
+          console.error('⚠️ Rate limit insert failed:', insertError.message);
+          return res.status(503).json({
+            error: 'rate_limit_unavailable',
+            message: 'Unable to start anonymous usage tracking right now. Please try again shortly or sign in.'
+          });
+        }
       }
 
-      console.log(`📊 Anonymous usage for ${ip}: ${(usage?.count || 0) + 1}/3`);
+      console.log(`📊 Anonymous usage for ${ip}: ${usageCount + 1}/3`);
     } catch (rateLimitError) {
-      // If rate limit check fails (e.g. table missing), log and continue
       console.error('⚠️ Rate limit check failed:', rateLimitError.message);
+      return res.status(503).json({
+        error: 'rate_limit_unavailable',
+        message: 'Anonymous rate limiting is temporarily unavailable. Please try again shortly or sign in.'
+      });
     }
   }
 
