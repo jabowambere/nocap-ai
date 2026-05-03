@@ -160,24 +160,37 @@ const Hero = () => {
             </h1>
 
             <p className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-              Nocap AI helps you check credibility, spot bias, and reduce misinformation—fast.
+              Paste any article, claim, or source — get a credibility score in seconds.
             </p>
 
             <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
               <button
                 onClick={() => scrollToId('demo')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 hover:bg-black-700 text-white font-semibold shadow-[0_16px_50px_rgba(37,99,235,0.28)] transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-semibold shadow-[0_16px_50px_rgba(255,255,255,0.15)] transition-colors"
               >
                 Get free demo <ArrowRight size={18} />
               </button>
               <button
                 onClick={() => scrollToId('features')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-neutral-950/40 backdrop-blur-sm text-slate-800 dark:text-slate-100 font-semibold hover:bg-white/80 dark:hover:bg-neutral-950/55 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-300 dark:border-white/20 bg-white dark:bg-white/10 backdrop-blur-sm text-slate-800 dark:text-white font-semibold hover:bg-slate-50 dark:hover:bg-white/20 transition-colors"
               >
                 View features
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="flex justify-center py-6">
+          <button
+            onClick={() => scrollToId('features')}
+            className="flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors group"
+          >
+            <span className="text-xs uppercase tracking-widest">Scroll</span>
+            <div className="w-5 h-8 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-start justify-center p-1 group-hover:border-slate-500 dark:group-hover:border-slate-400 transition-colors">
+              <div className="w-1 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-bounce" />
+            </div>
+          </button>
         </div>
       </div>
     </section>

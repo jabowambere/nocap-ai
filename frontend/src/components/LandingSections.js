@@ -27,6 +27,41 @@ const items = [
 const LandingSections = () => {
   return (
     <div className="max-w-6xl mx-auto px-4">
+
+      {/* Trust signals — auto-scrolling marquee */}
+      <section className="py-10 border-b border-slate-200/70 dark:border-slate-800 overflow-hidden">
+        <p className="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500 text-center mb-8">Powered by & verified against</p>
+        <div className="relative">
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-white dark:from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white dark:from-black to-transparent z-10 pointer-events-none" />
+
+          <div className="flex gap-12 animate-marquee whitespace-nowrap">
+            {[
+              { name: 'Google Gemini', logo: '/landing/gemini-color.svg' },
+              { name: 'Reuters', logo: '/landing/reuters.png' },
+              { name: 'BBC', logo: '/landing/bbc.png' },
+              { name: 'AP News', logo: '/landing/ap.png' },
+              { name: 'Snopes', logo: '/landing/snopes.png' },
+              { name: 'PolitiFact', logo: '/landing/politifact.png' },
+              { name: 'Supabase', logo: '/landing/sup.png' },
+              // Duplicate for seamless loop
+              { name: 'Google Gemini', logo: '/landing/gemini-color.svg' },
+              { name: 'Reuters', logo: '/landing/reuters.png' },
+              { name: 'BBC', logo: '/landing/bbc.png' },
+              { name: 'AP News', logo: '/landing/ap.png' },
+              { name: 'Snopes', logo: '/landing/snopes.png' },
+              { name: 'PolitiFact', logo: '/landing/politifact.png' },
+              { name: 'Supabase', logo: '/landing/sup.png' },
+            ].map(({ name, logo }, idx) => (
+              <div key={idx} className="inline-flex items-center gap-3 px-6 py-3 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white/60 dark:bg-neutral-950/40 backdrop-blur-sm shrink-0">
+                <img src={logo} alt={name} className="h-6 w-auto object-contain opacity-70 dark:opacity-50 hover:opacity-100 transition-opacity" />
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       <section id="features" className="py-16 scroll-mt-28">
         <div className="flex items-end justify-between gap-6">
           <div>
