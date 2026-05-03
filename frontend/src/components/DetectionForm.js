@@ -53,22 +53,26 @@ const joinUrl = (base, path) => {
         }),
       });
 
-      if (response.status === 429) {
-        const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+
+      if (
+        response.status === 429 ||
+        data.error === 'limit_reached' ||
+        data.error === 'rate_limit_unavailable'
+      ) {
         setLimitReached(true);
-        setError(data.message);
+        setError(data.message || 'Sign in for unlimited access to continue testing.');
         return;
       }
 
       if (!response.ok) {
-        throw new Error('Failed to analyze content');
+        throw new Error(data.message || 'Failed to analyze content');
       }
 
-      const data = await response.json();
       setResult(data);
     } catch (err) {
       if (err.message?.includes('limit_reached') || limitReached) return;
-      setError('Error analyzing content. Please try again or check your connection.');
+      setError(err.message || 'Error analyzing content. Please try again or check your connection.');
     } finally {
       setLoading(false);
     }
@@ -115,8 +119,10 @@ const joinUrl = (base, path) => {
                     <Zap className="text-white dark:text-slate-900" size={22} />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50 text-lg">You've used your 3 free analyses</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Sign in for unlimited fact-checking — it's free</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-50 text-lg">Sign in to keep testing</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {error || "You've reached the free anonymous limit. Sign in for unlimited fact-checking."}
+                    </p>
                   </div>
                   <button
                     onClick={onShowAuth}

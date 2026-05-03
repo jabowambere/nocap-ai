@@ -176,6 +176,12 @@ router.post('/analyze', optionalAuth, async (req, res) => {
 
         if (insertError) {
           console.error('⚠️ Rate limit insert failed:', insertError.message);
+          if (insertError.message?.includes('anonymous_usage_ip_idx') || insertError.message?.includes('duplicate key value')) {
+            return res.status(429).json({
+              error: 'limit_reached',
+              message: 'You have used your free analyses. Sign in for unlimited access.'
+            });
+          }
           return res.status(503).json({
             error: 'rate_limit_unavailable',
             message: 'Unable to start anonymous usage tracking right now. Please try again shortly or sign in.'
