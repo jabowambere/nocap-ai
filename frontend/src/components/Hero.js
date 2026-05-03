@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
 
 // ── Scramble hook ──────────────────────────────────────────────────────────────
@@ -11,7 +11,7 @@ const useScramble = (targetWord, { delay = 400, speed = 30, step = 0.35 } = {}) 
   const intervalRef = useRef(null);
   const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
 
-  const scramble = () => {
+  const scramble = useCallback(() => {
     let iteration = 0;
     clearInterval(intervalRef.current);
 
@@ -36,7 +36,7 @@ const useScramble = (targetWord, { delay = 400, speed = 30, step = 0.35 } = {}) 
         ref.current.textContent = targetWord; // ensure final word is clean
       }
     }, speed);
-  };
+  }, [speed, step, targetWord]);
 
   // Auto-play once on mount after `delay` ms
   useEffect(() => {
@@ -45,7 +45,7 @@ const useScramble = (targetWord, { delay = 400, speed = 30, step = 0.35 } = {}) 
       clearTimeout(timer);
       clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [delay, scramble]);
 
   return { ref, scramble };
 };
