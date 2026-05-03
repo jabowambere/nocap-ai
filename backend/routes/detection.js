@@ -72,7 +72,10 @@ const UNTRUSTED_DOMAINS = [
   'theonion.com', 'clickhole.com', 'empirenews.net',
   'newslo.com', 'huzlers.com', 'react365.com',
   'davidicke.com', 'veteranstoday.com', 'yournewswire.com',
-  'neonnettle.com', 'collective-evolution.com'
+  'neonnettle.com', 'collective-evolution.com',
+  '70news.wordpress.com', 'abcnews.com.co', 'rilenews.com',
+  'worldnewsreport.com', 'politicops.com', 'thebostontribune.com',
+  'christiantimes.com', 'now8news.com'
 ];
 
 function analyzeDomain(url) {
