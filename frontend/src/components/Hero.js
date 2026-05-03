@@ -66,12 +66,12 @@ const Hero = () => {
 
   const DotLogo = () => (
     <div className="mx-auto mb-8 w-14 h-14 rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-neutral-950/60 backdrop-blur-sm shadow-[0_16px_50px_rgba(15,23,42,0.12)] flex items-center justify-center">
-      <img
-        src="/landing/dotted.png"
-        alt="NoCap AI logo"
-        className="w-8 h-8 object-contain"
-        draggable="false"
-      />
+      <div className="grid grid-cols-2 gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-900 dark:bg-slate-50" />
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-400" />
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-400" />
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-900 dark:bg-slate-50" />
+      </div>
     </div>
   );
 
