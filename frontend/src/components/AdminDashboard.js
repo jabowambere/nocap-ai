@@ -31,6 +31,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [feedbacks, setFeedbacks] = useState([]);
   const [deleteFeedbackConfirm, setDeleteFeedbackConfirm] = useState(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null);
 
   useEffect(() => {
     if (getToken) {
@@ -556,7 +557,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
                     <p className="text-center text-slate-500 py-8">No analyses found</p>
                   ) : (
                     getFilteredAnalyses().map(analysis => (
-                      <div key={analysis.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                      <div key={analysis.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-all" onClick={() => setSelectedAnalysis(analysis)}>
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-4 flex-1">
                             {getVerdictIcon(analysis.verdict)}
@@ -679,6 +680,98 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
         </div>
       )}
       
+      {/* Analysis Detail Modal */}
+      {selectedAnalysis && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setSelectedAnalysis(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {getVerdictIcon(selectedAnalysis.verdict)}
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Analysis Detail</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(selectedAnalysis.created_at).toLocaleString()}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedAnalysis(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[75vh] space-y-4">
+              {/* Score + Verdict */}
+              <div className="flex items-center gap-3">
+                <span className={`text-3xl font-bold ${getScoreColor(selectedAnalysis.credibility_score)}`}>{selectedAnalysis.credibility_score}%</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  selectedAnalysis.verdict === 'LIKELY REAL'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : selectedAnalysis.verdict === 'LIKELY FAKE'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                }`}>{selectedAnalysis.verdict}</span>
+                {selectedAnalysis.username && selectedAnalysis.username !== 'Anonymous' && (
+                  <span className="text-sm text-slate-500 dark:text-slate-400 ml-auto">By: {selectedAnalysis.username}</span>
+                )}
+              </div>
+
+              {/* Full Text */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Analyzed Text</p>
+                <p className="text-sm text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">{selectedAnalysis.text}</p>
+              </div>
+
+              {/* Source URL */}
+              {selectedAnalysis.source_url && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Source URL</p>
+                  <a href={selectedAnalysis.source_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 break-all hover:underline">{selectedAnalysis.source_url}</a>
+                </div>
+              )}
+
+              {/* Analysis Summary */}
+              {selectedAnalysis.analysis && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Analysis Summary</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-xl p-3">{selectedAnalysis.analysis}</p>
+                </div>
+              )}
+
+              {/* Indicators */}
+              {selectedAnalysis.indicators?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Indicators ({selectedAnalysis.indicators.length})</p>
+                  <div className="space-y-1">
+                    {selectedAnalysis.indicators.map((ind, i) => (
+                      <p key={i} className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-1.5">• {ind}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sources */}
+              {selectedAnalysis.sources?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Sources ({selectedAnalysis.sources.length})</p>
+                  <div className="space-y-1">
+                    {selectedAnalysis.sources.map((src, i) => (
+                      <p key={i} className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-1.5 break-all">• {src}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Content Length */}
+              <p className="text-xs text-slate-400">Content length: {selectedAnalysis.content_length} characters</p>
+
+              <button
+                onClick={() => { setSelectedAnalysis(null); setDeleteConfirm(selectedAnalysis.id); }}
+                className="w-full px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition flex items-center justify-center gap-2"
+              >
+                <Trash2 size={16} /> Delete Analysis
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in" onClick={() => setDeleteConfirm(null)}>
