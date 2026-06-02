@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const { protect } = require('../middleware/auth');
 const supabase = require('../config/supabase');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -10,13 +10,13 @@ let genAI = null;
 if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key-here') {
   try {
     genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    console.log('✅ Gemini AI initialized');
+    console.log('âœ… Gemini AI initialized');
   } catch (err) {
-    console.error('⚠️ Failed to initialize Gemini client:', err.message);
+    console.error('âš ï¸ Failed to initialize Gemini client:', err.message);
     genAI = null;
   }
 } else {
-  console.log('⚠️ GEMINI_API_KEY not set; skipping Gemini client initialization');
+  console.log('âš ï¸ GEMINI_API_KEY not set; skipping Gemini client initialization');
 }
 
 // Query Google Fact Check Tools API
@@ -42,10 +42,10 @@ async function checkFactCheckAPI(text) {
       url: claim.claimReview?.[0]?.url || null
     }));
 
-    console.log('✅ Fact Check API results:', results.length, 'claims found');
+    console.log('âœ… Fact Check API results:', results.length, 'claims found');
     return results;
   } catch (err) {
-    console.error('⚠️ Fact Check API error:', err.message);
+    console.error('âš ï¸ Fact Check API error:', err.message);
     return null;
   }
 }
@@ -116,88 +116,7 @@ router.post('/analyze', optionalAuth, async (req, res) => {
   if (!text) return res.status(400).json({ error: 'Please provide content to analyze' });
 
   const userId = req.user ? req.user.clerk_id : 'anonymous';
-  console.log('📝 Analyzing for user:', userId);
-
-  // --- IP-based rate limiting for anonymous users ---
-  if (!req.user) {
-    try {
-      const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
-      console.log('🌐 Anonymous request from IP:', ip);
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const { data: usageRows, error: usageError } = await supabase
-        .from('anonymous_usage')
-        .select('*')
-        .eq('ip_address', ip)
-        .gte('created_at', today.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (usageError) {
-        console.error('⚠️ Rate limit lookup failed:', usageError.message);
-        return res.status(503).json({
-          error: 'rate_limit_unavailable',
-          message: 'Unable to verify anonymous usage right now. Please try again shortly or sign in.'
-        });
-      }
-
-      const usage = usageRows?.[0] || null;
-      const usageCount = usage ? Number(usage.count || 0) : 0;
-
-      if ((usageRows?.length || 0) > 1) {
-        console.warn(`⚠️ Multiple anonymous_usage rows found for ${ip} today; using latest row id ${usage.id}`);
-      }
-
-      if (usageCount >= 3) {
-        return res.status(429).json({
-          error: 'limit_reached',
-          message: 'You have used your 3 free analyses. Sign in for unlimited access.'
-        });
-      }
-
-      if (usage) {
-        const { error: updateError } = await supabase
-          .from('anonymous_usage')
-          .update({ count: usageCount + 1, last_used: new Date().toISOString() })
-          .eq('id', usage.id);
-
-        if (updateError) {
-          console.error('⚠️ Rate limit update failed:', updateError.message);
-          return res.status(503).json({
-            error: 'rate_limit_unavailable',
-            message: 'Unable to update anonymous usage right now. Please try again shortly or sign in.'
-          });
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('anonymous_usage')
-          .insert({ ip_address: ip, count: 1 });
-
-        if (insertError) {
-          console.error('⚠️ Rate limit insert failed:', insertError.message);
-          if (insertError.message?.includes('anonymous_usage_ip_idx') || insertError.message?.includes('duplicate key value')) {
-            return res.status(429).json({
-              error: 'limit_reached',
-              message: 'You have used your free analyses. Sign in for unlimited access.'
-            });
-          }
-          return res.status(503).json({
-            error: 'rate_limit_unavailable',
-            message: 'Unable to start anonymous usage tracking right now. Please try again shortly or sign in.'
-          });
-        }
-      }
-
-      console.log(`📊 Anonymous usage for ${ip}: ${usageCount + 1}/3`);
-    } catch (rateLimitError) {
-      console.error('⚠️ Rate limit check failed:', rateLimitError.message);
-      return res.status(503).json({
-        error: 'rate_limit_unavailable',
-        message: 'Anonymous rate limiting is temporarily unavailable. Please try again shortly or sign in.'
-      });
-    }
-  }
+  console.log('ðŸ“ Analyzing for user:', userId);
 
   try {
     const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -214,7 +133,7 @@ router.post('/analyze', optionalAuth, async (req, res) => {
         });
         if (aiResponse.ok) break;
       } catch (err) {
-        console.log(`⚠️ AI service attempt ${attempt} failed:`, err.message);
+        console.log(`âš ï¸ AI service attempt ${attempt} failed:`, err.message);
         if (attempt === 3) throw new Error('AI service unavailable');
         await new Promise(r => setTimeout(r, 5000)); // wait 5s before retry
       }
@@ -241,12 +160,12 @@ router.post('/analyze', optionalAuth, async (req, res) => {
         const rating = fc.rating.toLowerCase();
         if (fakeRatings.some(r => rating.includes(r))) {
           factCheckScore -= 0.3;
-          indicators.push(`❌ Fact-checked as "${fc.rating}" by ${fc.publisher}`);
+          indicators.push(`âŒ Fact-checked as "${fc.rating}" by ${fc.publisher}`);
         } else if (realRatings.some(r => rating.includes(r))) {
           factCheckScore += 0.2;
-          indicators.push(`✅ Fact-checked as "${fc.rating}" by ${fc.publisher}`);
+          indicators.push(`âœ… Fact-checked as "${fc.rating}" by ${fc.publisher}`);
         } else {
-          indicators.push(`🔍 Fact-check found: "${fc.rating}" by ${fc.publisher}`);
+          indicators.push(`ðŸ” Fact-check found: "${fc.rating}" by ${fc.publisher}`);
         }
         if (fc.url) sources.push(`Fact-check: ${fc.publisher} - ${fc.url}`);
       });
@@ -261,10 +180,10 @@ router.post('/analyze', optionalAuth, async (req, res) => {
         indicators.push('Source from verified trusted domain');
       } else if (domainAnalysis.status === 'untrusted') {
         finalScore += domainAnalysis.score;
-        indicators.push('⚠️ Warning: Source from known unreliable domain');
+        indicators.push('âš ï¸ Warning: Source from known unreliable domain');
       } else if (domainAnalysis.status === 'unknown') {
         finalScore += domainAnalysis.score;
-        indicators.push('⚠️ Source domain not in verified database — treat with caution');
+        indicators.push('âš ï¸ Source domain not in verified database â€” treat with caution');
       }
       sources.push(domainAnalysis.message);
     }
@@ -287,7 +206,7 @@ router.post('/analyze', optionalAuth, async (req, res) => {
     if (aiResult.genocide_check?.is_relevant) {
       aiResult.genocide_check.flags.forEach(flag => indicators.push(flag));
       if (aiResult.genocide_check.denial_patterns_found?.length > 0) {
-        sources.push(`⚠️ Genocide denial patterns detected: ${aiResult.genocide_check.denial_patterns_found.join(', ')}`);
+        sources.push(`âš ï¸ Genocide denial patterns detected: ${aiResult.genocide_check.denial_patterns_found.join(', ')}`);
       }
     }
 
@@ -296,9 +215,9 @@ router.post('/analyze', optionalAuth, async (req, res) => {
       aiResult.goat_check.flags.forEach(flag => indicators.push(flag));
       if (aiResult.goat_check.false_claims_found?.length > 0) {
         finalScore = Math.min(finalScore, 0.25);
-        sources.push('🐐 Established fact: Messi is the GOAT. 8 Ballon d\'Or, 2022 World Cup winner.');
+        sources.push('ðŸ Established fact: Messi is the GOAT. 8 Ballon d\'Or, 2022 World Cup winner.');
       } else if (aiResult.goat_check.flags?.some(f => f.includes('CORRECT'))) {
-        // Messi GOAT facts are correct — boost score
+        // Messi GOAT facts are correct â€” boost score
         finalScore = Math.max(finalScore, 0.80);
       }
     }
@@ -314,8 +233,8 @@ router.post('/analyze', optionalAuth, async (req, res) => {
             const domain = new URL(sourceUrl).hostname.replace('www.', '').toLowerCase();
             const isTrusted = TRUSTED_DOMAINS.some(t => domain === t || domain.endsWith(`.${t}`));
             const isUntrusted = UNTRUSTED_DOMAINS.some(u => domain.includes(u));
-            if (!isTrusted && !isUntrusted) return `\nSource domain: ${domain} — NOT in verified database. Assess this domain's credibility.`;
-            return `\nSource domain: ${domain} — ${isTrusted ? 'verified trusted domain' : 'known unreliable domain'}.`;
+            if (!isTrusted && !isUntrusted) return `\nSource domain: ${domain} â€” NOT in verified database. Assess this domain's credibility.`;
+            return `\nSource domain: ${domain} â€” ${isTrusted ? 'verified trusted domain' : 'known unreliable domain'}.`;
           } catch { return ''; }
         })() : '';
 
@@ -324,13 +243,13 @@ router.post('/analyze', optionalAuth, async (req, res) => {
           : '\n\nNo existing fact-check records found for this content.';
 
         const genocideContext = aiResult.genocide_check?.is_relevant
-          ? `\n\n⚠️ IMPORTANT: This content is about the 1994 Genocide Against the Tutsi in Rwanda. Apply strict scrutiny:\n- Denial patterns found: ${aiResult.genocide_check.denial_patterns_found?.length > 0 ? aiResult.genocide_check.denial_patterns_found.join(', ') : 'none'}\n- The genocide is a legally established fact (ICTR, UN). Any content minimizing, denying, or distorting it should be rated LIKELY FAKE regardless of neutral tone.\n- "Double genocide" theory, calling it a "civil war", blaming the RPF/RPA for mass killings of civilians, or attributing atrocities to Tutsi soldiers to deflect from the genocide are established denial tactics debunked by ICTR.\n- Claims that RPF/RPA gathered people in schools/markets to kill them is a known false narrative used to create a false equivalence with the genocide.\n- Neutral or academic tone does NOT make denial content credible. Judge by facts, not tone.`
+          ? `\n\nâš ï¸ IMPORTANT: This content is about the 1994 Genocide Against the Tutsi in Rwanda. Apply strict scrutiny:\n- Denial patterns found: ${aiResult.genocide_check.denial_patterns_found?.length > 0 ? aiResult.genocide_check.denial_patterns_found.join(', ') : 'none'}\n- The genocide is a legally established fact (ICTR, UN). Any content minimizing, denying, or distorting it should be rated LIKELY FAKE regardless of neutral tone.\n- "Double genocide" theory, calling it a "civil war", blaming the RPF/RPA for mass killings of civilians, or attributing atrocities to Tutsi soldiers to deflect from the genocide are established denial tactics debunked by ICTR.\n- Claims that RPF/RPA gathered people in schools/markets to kill them is a known false narrative used to create a false equivalence with the genocide.\n- Neutral or academic tone does NOT make denial content credible. Judge by facts, not tone.`
           : '';
 
         const goatContext = aiResult.goat_check?.is_relevant
           ? aiResult.goat_check?.false_claims_found?.length > 0
-            ? `\n\n🐐 IMPORTANT FACT: This content makes false claims about Ronaldo being better than Messi. ESTABLISHED FACT: Lionel Messi is the Greatest Of All Time (GOAT). Evidence: 8 Ballon d'Or awards (vs Ronaldo's 5), 2022 FIFA World Cup winner, Copa America winner, multiple Champions League titles. Any claim that Ronaldo is better than Messi must be rated LIKELY FAKE.`
-            : `\n\n🐐 FOOTBALL GOAT CONTEXT: Lionel Messi is the established GOAT. Facts: 8 Ballon d'Or awards, 2022 FIFA World Cup winner with Argentina, Copa America winner, multiple Champions League titles with Barcelona. Any content correctly stating Messi is the GOAT or that he won the 2022 World Cup is 100% factually accurate and must be rated LIKELY REAL.`
+            ? `\n\nðŸ IMPORTANT FACT: This content makes false claims about Ronaldo being better than Messi. ESTABLISHED FACT: Lionel Messi is the Greatest Of All Time (GOAT). Evidence: 8 Ballon d'Or awards (vs Ronaldo's 5), 2022 FIFA World Cup winner, Copa America winner, multiple Champions League titles. Any claim that Ronaldo is better than Messi must be rated LIKELY FAKE.`
+            : `\n\nðŸ FOOTBALL GOAT CONTEXT: Lionel Messi is the established GOAT. Facts: 8 Ballon d'Or awards, 2022 FIFA World Cup winner with Argentina, Copa America winner, multiple Champions League titles with Barcelona. Any content correctly stating Messi is the GOAT or that he won the 2022 World Cup is 100% factually accurate and must be rated LIKELY REAL.`
           : '';
 
         const prompt = `You are an expert fact-checker specializing in African history, genocide studies, and general knowledge. Analyze this content for credibility.
@@ -341,7 +260,7 @@ Initial heuristic score: ${scorePercent}%
         Return ONLY a JSON object:
 {"verdict": "LIKELY REAL" or "LIKELY FAKE", "confidence": 0-100, "reasoning": "brief explanation", "domain_assessment": "assessment of source domain credibility or null"}
 
-Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear. For genocide-related content, neutral tone does NOT mean credible. For football GOAT debates, Messi IS the GOAT — this is non-negotiable.`;
+Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-100) when evidence is clear. For genocide-related content, neutral tone does NOT mean credible. For football GOAT debates, Messi IS the GOAT â€” this is non-negotiable.`;
 
         const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
         let response = null;
@@ -352,11 +271,11 @@ Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-1
             const model = genAI.getGenerativeModel({ model: modelName });
             const result = await model.generateContent(prompt);
             response = result.response.text();
-            console.log(`✅ Gemini response from ${modelName}:`, response);
+            console.log(`âœ… Gemini response from ${modelName}:`, response);
             break;
           } catch (modelError) {
             lastGeminiError = modelError;
-            console.warn(`⚠️ Gemini model ${modelName} failed:`, modelError.message);
+            console.warn(`âš ï¸ Gemini model ${modelName} failed:`, modelError.message);
           }
         }
 
@@ -397,14 +316,14 @@ Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-1
         analysis = aiAnalysis.reasoning;
 
         if (aiAnalysis.domain_assessment) {
-          indicators.push(`🔍 Domain assessment: ${aiAnalysis.domain_assessment}`);
+          indicators.push(`ðŸ” Domain assessment: ${aiAnalysis.domain_assessment}`);
           sources.push(`Gemini domain assessment: ${aiAnalysis.domain_assessment}`);
         }
-        indicators.push('✨ Enhanced with Google Gemini AI deep analysis');
-        console.log('📊 Final verdict:', verdict, 'Score:', Math.round(finalScore * 100) + '%');
+        indicators.push('âœ¨ Enhanced with Google Gemini AI deep analysis');
+        console.log('ðŸ“Š Final verdict:', verdict, 'Score:', Math.round(finalScore * 100) + '%');
 
       } catch (geminiError) {
-        console.error('❌ Gemini analysis failed:', geminiError.message);
+        console.error('âŒ Gemini analysis failed:', geminiError.message);
         verdict = scorePercent >= 70 ? 'LIKELY REAL' : scorePercent >= 50 ? 'UNCERTAIN' : 'LIKELY FAKE';
         analysis = scorePercent >= 70
           ? 'This content appears credible with factual language and trusted sources.'
@@ -435,8 +354,8 @@ Be decisive. Weight fact-check results heavily. Use extreme scores (0-20 or 80-1
       content_length: text.length
     }).select();
 
-    if (dbError) console.error('❌ Database save error:', dbError);
-    else console.log('✅ Saved to database:', savedData);
+    if (dbError) console.error('âŒ Database save error:', dbError);
+    else console.log('âœ… Saved to database:', savedData);
 
     res.json({ credibilityScore: finalScorePercent, verdict, analysis, indicators, sources, contentLength: text.length, sourceUrl: sourceUrl || null });
 
