@@ -39,7 +39,7 @@ const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/
       });
       const data = await response.json();
       
-      setUserAnalyses(data);
+      setUserAnalyses(Array.isArray(data) ? data : []);
       
       const realCount = data.filter(a => a.verdict === 'LIKELY REAL').length;
       const fakeCount = data.filter(a => a.verdict === 'LIKELY FAKE').length;

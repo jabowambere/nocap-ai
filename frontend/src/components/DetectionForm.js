@@ -1,24 +1,18 @@
 import React, { useState } from 'react';
-import { Loader2, X, Zap, Link, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Loader2, X, Link, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 import ResultCard from './ResultCard';
 
 const DetectionForm = ({ token, isAuthenticated, onShowAuth }) => {
   const { user } = useUser();
-  // Base URL for backend API; strip any trailing slash so we don't end up
-// with double‑slashes when concatenating paths.
-const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+  const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+  const joinUrl = (base, path) => `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 
-// helper that concatenates base and path without creating "//" sequences
-const joinUrl = (base, path) => {
-  return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
-};
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [limitReached, setLimitReached] = useState(false);
 
   const recommendedSources = [
     { name: 'Reuters', url: 'https://reuters.com', category: 'News Agency' },
@@ -43,9 +37,7 @@ const joinUrl = (base, path) => {
     try {
       const response = await fetch(joinUrl(API_URL, '/api/detection/analyze'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: content.trim(),
           sourceUrl: sourceUrl.trim(),
@@ -55,23 +47,12 @@ const joinUrl = (base, path) => {
 
       const data = await response.json().catch(() => ({}));
 
-      if (
-        response.status === 429 ||
-        data.error === 'limit_reached' ||
-        data.error === 'rate_limit_unavailable'
-      ) {
-        setLimitReached(true);
-        setError(data.message || 'Sign in for unlimited access to continue testing.');
-        return;
-      }
-
       if (!response.ok) {
         throw new Error(data.message || 'Failed to analyze content');
       }
 
       setResult(data);
     } catch (err) {
-      if (err.message?.includes('limit_reached') || limitReached) return;
       setError(err.message || 'Error analyzing content. Please try again or check your connection.');
     } finally {
       setLoading(false);
@@ -88,7 +69,7 @@ const joinUrl = (base, path) => {
               <h2 className="text-2xl font-bold text-white mb-2 animate-in fade-in slide-in-from-left-4 duration-300 delay-400">Analyze News Content</h2>
               <p className="text-slate-200 animate-in fade-in slide-in-from-left-4 duration-300 delay-500">Paste any news article or claim to verify its credibility</p>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-8 space-y-6 bg-white dark:bg-black animate-in fade-in duration-400 delay-600">
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 delay-700">
                 <textarea
@@ -113,27 +94,7 @@ const joinUrl = (base, path) => {
                 </div>
               </div>
 
-              {limitReached && (
-                <div className="flex flex-col items-center gap-4 p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-center">
-                  <div className="w-12 h-12 rounded-full bg-slate-900 dark:bg-slate-50 flex items-center justify-center">
-                    <Zap className="text-white dark:text-slate-900" size={22} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50 text-lg">Sign in to keep testing</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      {error || "You've reached the free anonymous limit. Sign in for unlimited fact-checking."}
-                    </p>
-                  </div>
-                  <button
-                    onClick={onShowAuth}
-                    className="w-full py-3 px-6 bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 rounded-xl font-semibold hover:bg-slate-700 dark:hover:bg-slate-200 transition-colors"
-                  >
-                    Sign in for unlimited access
-                  </button>
-                </div>
-              )}
-
-              {error && !limitReached && (
+              {error && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200 animate-in fade-in slide-in-from-top-4 duration-300">
                   <X size={20} className="flex-shrink-0 mt-0.5 animate-pulse" />
                   <p className="text-sm">{error}</p>
@@ -142,7 +103,7 @@ const joinUrl = (base, path) => {
 
               <button
                 type="submit"
-                disabled={loading || !content.trim() || limitReached}
+                disabled={loading || !content.trim()}
                 className="w-full py-4 px-6 bg-gradient-to-r from-gray-900 to-black hover:from-slate-800 hover:to-gray-900 text-white rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] disabled:transform-none animate-in fade-in slide-in-from-bottom-4 delay-900 hover:animate-pulse"
               >
                 {loading ? (
@@ -170,7 +131,7 @@ const joinUrl = (base, path) => {
               <h3 className="text-xl font-bold text-white mb-2 animate-in fade-in slide-in-from-left-4 duration-300 delay-600">Trusted Sources</h3>
               <p className="text-slate-200 text-sm animate-in fade-in slide-in-from-left-4 duration-300 delay-700">Verify with reliable news outlets</p>
             </div>
-            
+
             <div className="p-6 space-y-4 bg-white dark:bg-black animate-in fade-in duration-400 delay-800">
               {recommendedSources.map((source, idx) => (
                 <a
